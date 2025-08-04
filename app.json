@@ -24,6 +24,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "API_URL": "https://hrp-server-api.onrender.com",
+      "SOCKET_URL": "https://hrp-server-api.onrender.com"
     }
   }
 }
