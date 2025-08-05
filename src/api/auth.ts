@@ -9,7 +9,7 @@ export interface AuthResponse {
 }
 
 export function login(email: string, password: string) {
-  return axios.post<AuthResponse>(`${API_URL}/auth/login`, {
+  return axios.post<AuthResponse>(`${API_URL}/api/auth/login`, {
     email,
     password
   });

@@ -1,17 +1,30 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomeScreen from '../screen/HomeScreen';
-
-
-const Stack = createNativeStackNavigator();
+import { useSelector } from 'react-redux';
+import AuthNavigator from './AuthNavigator';
+import AdminTabNavigator from './AdminTabNavigator';
+import LandlordTabNavigator from './LandlordTabNavigator';
+import TenantTabNavigator from './TenantTabNavigator';
+import type { RootState } from '../store/rootReducer';
 
 export default function AppNavigator() {
+  const { token, role } = useSelector((state: RootState) => state.auth);
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen name="Home" component={HomeScreen} />
-      </Stack.Navigator>
+      {token == null ? (
+        // No token → show auth screens
+        <AuthNavigator />
+      ) : role === 'admin' ? (
+        // Admin
+        <AdminTabNavigator />
+      ) : role === 'landlord' ? (
+        // Landlord
+        <LandlordTabNavigator />
+      ) : (
+        // Tenant
+        <TenantTabNavigator />
+      )}
     </NavigationContainer>
   );
 }
