@@ -27,4 +27,16 @@ export default StyleSheet.create({
     marginTop: 24,
     width: '60%',
   },
+   input: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 12,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 8,
+  },
 });
