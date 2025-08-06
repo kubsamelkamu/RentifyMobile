@@ -1,21 +1,20 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import TenantHomeScreen from '../screen/tenant/TenantHomeScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import PropertyListScreen from '../screen/properties/PropertiesList';
+import PropertyDetailScreen from '../screen/properties/PropertiesDetail';
 
-export type TenantTabParamList = {
-  TenantHome: undefined;
+export type TenantStackParamList = {
+  PropertyList: undefined;
+  PropertyDetail: { id: string };
 };
 
-const Tab = createBottomTabNavigator<TenantTabParamList>();
+const Stack = createNativeStackNavigator<TenantStackParamList>();
 
-export default function TenantTabNavigator() {
+export default function TenantStackNavigator() {
   return (
-    <Tab.Navigator>
-      <Tab.Screen
-        name="TenantHome"
-        component={TenantHomeScreen}
-        options={{ title: 'Dashboard' }}
-      />
-    </Tab.Navigator>
+    <Stack.Navigator>
+      <Stack.Screen name="PropertyList" component={PropertyListScreen} />
+      <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
+    </Stack.Navigator>
   );
 }
