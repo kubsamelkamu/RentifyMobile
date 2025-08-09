@@ -11,10 +11,29 @@ export type TenantStackParamList = {
 const Stack = createNativeStackNavigator<TenantStackParamList>();
 
 export default function TenantStackNavigator() {
+  
   return (
     <Stack.Navigator>
-      <Stack.Screen name="PropertyList" component={PropertyListScreen} />
-      <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
+      <Stack.Screen 
+          name="PropertyList" 
+          component={PropertyListScreen} 
+          options={{
+          headerTitle: 'Rentify',
+          headerTitleStyle: {
+          fontSize: 24,
+          fontWeight: 'bold',
+          color: '#0284C7', 
+        },
+          headerTitleAlign: 'left', 
+          headerStyle: {
+          backgroundColor: '#fff',
+        },
+      }}
+      />
+      <Stack.Screen 
+        name="PropertyDetail" 
+        component={PropertyDetailScreen} 
+      />
     </Stack.Navigator>
   );
 }
