@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {View,Text,FlatList,RefreshControl,ActivityIndicator,TouchableOpacity,Image,StyleSheet,} from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootStackNavigator';
 import { fetchPropertiesThunk } from '../../store/slices/propertiesSlice';
 import type { AppDispatch, RootState } from '../../store/store';
@@ -11,6 +11,14 @@ import type { Property } from '../../api/properties';
 import HeroSection from '../../component/HeroSection';
 import FilterPanel, { PropertyFilters } from '../../component/FilterPanel';
 import { logout } from '../../store/slices/authSlice';
+
+const SkeletonCard = () => (
+  <View style={styles.skeletonCard}>
+    <View style={styles.skeletonImage} />
+    <View style={styles.skeletonLine} />
+    <View style={styles.skeletonLineShort} />
+  </View>
+);
 
 type NavProp = NativeStackNavigationProp<RootStackParamList, 'PropertyList'>;
 
@@ -23,6 +31,7 @@ export default function PropertyListScreen() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<PropertyFilters>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +57,11 @@ export default function PropertyListScreen() {
   );
 
   useEffect(() => {
-    dispatch(fetchPropertiesThunk({ ...filters, page, limit }));
+    const load = async () => {
+      await dispatch(fetchPropertiesThunk({ ...filters, page, limit }));
+      setInitialLoading(false);
+    };
+    load();
   }, [dispatch, filters, page, limit]);
 
   const onRefresh = useCallback(() => {
@@ -58,6 +71,7 @@ export default function PropertyListScreen() {
       .finally(() => setRefreshing(false));
   }, [dispatch, filters, limit]);
 
+  
   const onEndReached = useCallback(() => {
     const lastPage = Math.ceil(total / limit);
     if (page < lastPage && status !== 'loading') {
@@ -114,6 +128,18 @@ export default function PropertyListScreen() {
       />
     </>
   ), [filters]);
+
+  if (initialLoading) {
+    return (
+      <FlatList
+        data={Array.from({ length: 5 })}
+        keyExtractor={(_, index) => index.toString()}
+        renderItem={() => <SkeletonCard />}
+        ListHeaderComponent={ListHeader}
+        contentContainerStyle={styles.container}
+      />
+    );
+  }
 
   return (
     <FlatList
@@ -190,4 +216,9 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48, marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8 },
   emptySubtitle: { fontSize: 14, color: '#666', textAlign: 'center' },
+  
+  skeletonCard: { padding: 15, marginHorizontal: 16, marginBottom: 16, backgroundColor: '#eee', borderRadius: 8 },
+  skeletonImage: { height: 150, backgroundColor: '#ddd', borderRadius: 8, marginBottom: 10 },
+  skeletonLine: { height: 14, backgroundColor: '#ddd', borderRadius: 6, marginBottom: 6 },
+  skeletonLineShort: { height: 14, width: '60%', backgroundColor: '#ddd', borderRadius: 6 },
 });
