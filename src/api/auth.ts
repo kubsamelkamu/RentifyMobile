@@ -3,9 +3,17 @@ import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig!.extra!.API_URL as string;
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'TENANT' | 'LANDLORD' | 'ADMIN' | 'SUPER_ADMIN';
+}
+
 export interface AuthResponse {
   token: string;
-  role: 'admin' | 'landlord' | 'tenant';
+  user: User;
+  message?: string;
 }
 
 export function login(email: string, password: string) {
