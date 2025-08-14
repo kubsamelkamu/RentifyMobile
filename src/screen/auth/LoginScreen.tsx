@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useForm, Controller } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearError, loginUser } from '../../store/slices/authSlice';
+import { fetchPropertiesThunk } from '../../store/slices/propertiesSlice';
 import type { RootState, AppDispatch } from '../../store/store';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootStackNavigator';
@@ -21,7 +22,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const { control, handleSubmit } = useForm<LoginForm>();
   const dispatch = useDispatch<AppDispatch>();
-  const { status, error: apiError, token } = useSelector((state: RootState) => state.auth);
+  const { status, error: apiError, token, user } = useSelector((state: RootState) => state.auth);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -33,15 +34,23 @@ export default function LoginScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (token) {
+      dispatch(fetchPropertiesThunk({ page: 1, limit: 10 }));
       navigation.reset({
         index: 0,
         routes: [{ name: 'PropertyList' }],
       });
     }
-  }, [token, navigation]);
+  }, [token, navigation, dispatch]);
 
   const onSubmit = (data: LoginForm) => {
-    dispatch(loginUser(data));
+    dispatch(loginUser(data))
+      .unwrap()
+      .then((res) => console.log('Logged in user:', res.user))
+      .catch((err) => console.log('Login failed:', err));
+  };
+
+  const clearErrorHandler = () => {
+    dispatch(clearError());
   };
 
   return (
@@ -54,20 +63,18 @@ export default function LoginScreen({ navigation }: Props) {
           <MaskedView
             maskElement={<Text style={[styles.title, { backgroundColor: 'transparent' }]}>Rentify</Text>}
           >
-            <LinearGradient
-              colors={[colors.purpleStart, colors.purpleEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
+            <LinearGradient colors={[colors.purpleStart, colors.purpleEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Text style={[styles.title, { opacity: 0 }]}>Rentify</Text>
             </LinearGradient>
           </MaskedView>
           <Text style={styles.subtitle}>Welcome back!</Text>
+
           {apiError && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{apiError}</Text>
             </View>
           )}
+
           <Controller
             control={control}
             name="email"
@@ -81,7 +88,10 @@ export default function LoginScreen({ navigation }: Props) {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={value}
-                  onChangeText={onChange}
+                  onChangeText={(text) => {
+                    clearErrorHandler();
+                    onChange(text);
+                  }}
                   editable={status !== 'loading'}
                 />
                 {error && <Text style={styles.inputError}>{error.message}</Text>}
@@ -100,20 +110,21 @@ export default function LoginScreen({ navigation }: Props) {
                   placeholder="Password"
                   secureTextEntry
                   value={value}
-                  onChangeText={onChange}
+                  onChangeText={(text) => {
+                    clearErrorHandler();
+                    onChange(text);
+                  }}
                   editable={status !== 'loading'}
                 />
                 {error && <Text style={styles.inputError}>{error.message}</Text>}
               </>
             )}
           />
-
           {status === 'loading' ? (
             <ActivityIndicator style={{ marginTop: spacing.lg }} />
           ) : (
-            <GradientButton onPress={handleSubmit(onSubmit)} title="Login" />
+            <GradientButton onPress={handleSubmit(onSubmit)} title="Login"  />
           )}
-
           <View style={styles.linksContainer}>
             <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
               <Text style={styles.linkText}>Forgot Your Password?</Text>
@@ -128,15 +139,7 @@ export default function LoginScreen({ navigation }: Props) {
   );
 }
 
-function GradientButton({
-  onPress,
-  title,
-  disabled,
-}: {
-  onPress(): void;
-  title: string;
-  disabled?: boolean;
-}) {
+function GradientButton({ onPress, title, disabled }: { onPress(): void; title: string; disabled?: boolean }) {
   return (
     <LinearGradient
       colors={[colors.purpleStart, colors.purpleEnd]}
