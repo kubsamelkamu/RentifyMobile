@@ -110,7 +110,10 @@ export default function PropertyDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
         {property.images?.[0]?.url && <Image source={{ uri: property.images[0].url }} style={styles.image} />}
         <View style={styles.headerRow}>
           <Text style={styles.title}>{property.title}</Text>
@@ -132,6 +135,67 @@ export default function PropertyDetailScreen() {
         </View>
 
         <Text style={styles.price}>Rent: {property.rentPerMonth} ETB/month</Text>
+        <View style={styles.bookingSection}>
+          <Text style={styles.sectionTitle}>Select Dates</Text>
+          <Text style={styles.summaryText}>{nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Pick dates'}</Text>
+
+          <TouchableOpacity 
+            style={styles.dateButton} 
+            onPress={() => setShowStartPicker(true)} 
+            disabled={submitting}
+          >
+            <Text style={styles.dateButtonText}>
+              {startDate ? `Start: ${startDate.toDateString()}` : 'Select Start Date'}
+            </Text>
+          </TouchableOpacity>
+          {showStartPicker && (
+            <DateTimePicker
+              value={startDate || new Date()}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(e, d) => { 
+                setShowStartPicker(false); 
+                if(d) {
+                  setStartDate(d); 
+                  if(endDate && d > endDate) setEndDate(null);
+                } 
+              }}
+            />
+          )}
+
+          <TouchableOpacity
+            style={[styles.dateButton, !startDate && styles.disabledBtn]}
+            onPress={() => setShowEndPicker(true)}
+            disabled={!startDate || submitting}
+          >
+            <Text style={[styles.dateButtonText, !startDate && { color: '#999' }]}>
+              {endDate ? `End: ${endDate.toDateString()}` : startDate ? 'Select End Date' : 'Select Start Date First'}
+            </Text>
+          </TouchableOpacity>
+          {showEndPicker && (
+            <DateTimePicker
+              value={endDate || startDate || new Date()}
+              mode="date"
+              display="default"
+              minimumDate={startDate || new Date()}
+              onChange={(e, d) => { 
+                setShowEndPicker(false); 
+                if(d) setEndDate(d); 
+              }}
+            />
+          )}
+
+          <TouchableOpacity
+            style={[styles.bookingButton, (submitting || !startDate || !endDate) && styles.bookingButtonDisabled]}
+            onPress={handleRequestBooking}
+            disabled={submitting || !startDate || !endDate}
+          >
+            <Text style={styles.bookingButtonText}>
+              {submitting ? 'Sending…' : 'Request Booking'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.sectionTitle}>Description</Text>
         <Text style={styles.description}>{property.description || 'No description provided.'}</Text>
@@ -160,82 +224,163 @@ export default function PropertyDetailScreen() {
           <Text style={styles.ownerText}>{property.landlord?.email || 'N/A'}</Text>
         </View>
       </ScrollView>
-
-      <View style={styles.bookingBar}>
-        <Text style={styles.summaryText}>{nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Pick dates'}</Text>
-
-        <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartPicker(true)} disabled={submitting}>
-          <Text style={styles.dateButtonText}>{startDate ? `Start: ${startDate.toDateString()}` : 'Select Start Date'}</Text>
-        </TouchableOpacity>
-        {showStartPicker && (
-          <DateTimePicker
-            value={startDate || new Date()}
-            mode="date"
-            display="default"
-            minimumDate={new Date()}
-            onChange={(e, d) => { setShowStartPicker(false); if(d){setStartDate(d); if(endDate && d > endDate) setEndDate(null);} }}
-          />
-        )}
-
-        <TouchableOpacity
-          style={[styles.dateButton, !startDate && styles.disabledBtn]}
-          onPress={() => setShowEndPicker(true)}
-          disabled={!startDate || submitting}
-        >
-          <Text style={[styles.dateButtonText, !startDate && { color: '#999' }]}>
-            {endDate ? `End: ${endDate.toDateString()}` : startDate ? 'Select End Date' : 'Select Start Date First'}
-          </Text>
-        </TouchableOpacity>
-        {showEndPicker && (
-          <DateTimePicker
-            value={endDate || startDate || new Date()}
-            mode="date"
-            display="default"
-            minimumDate={startDate || new Date()}
-            onChange={(e, d) => { setShowEndPicker(false); if(d) setEndDate(d); }}
-          />
-        )}
-
-        <TouchableOpacity
-          style={[styles.bookingButton, (submitting || !startDate || !endDate) && styles.bookingButtonDisabled]}
-          onPress={handleRequestBooking}
-          disabled={submitting || !startDate || !endDate}
-        >
-          <Text style={styles.bookingButtonText}>{submitting ? 'Sending…' : 'Request Booking'}</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { padding: 16, paddingBottom: 140 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
-  errorText: { fontSize: 16, color: 'red' },
-  image: { width: '100%', height: 200, borderRadius: 8, marginBottom: 16 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: '700', flex: 1, marginRight: 8 },
-  typeBadge: { backgroundColor: '#0284C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  typeText: { color: '#fff', fontWeight: '600', fontSize: 12 },
-  city: { fontSize: 18, color: '#666', marginBottom: 16 },
-  iconRow: { flexDirection: 'row', marginBottom: 12 },
-  iconItem: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
-  iconText: { marginLeft: 6, color: '#4B5563' },
-  price: { fontSize: 18, fontWeight: '600', marginVertical: 12, color: '#0284C7' },
-  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 6, color: '#1F2937' },
-  description: { fontSize: 16, lineHeight: 22, color: '#333' },
-  amenitiesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 8 },
-  amenityChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginRight: 8, marginBottom: 8 },
-  amenityText: { color: '#fff', fontSize: 14, marginLeft: 5 },
-  ownerInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  ownerText: { marginLeft: 8, fontSize: 16, color: '#374151' },
-  bookingBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 12, borderTopWidth: 1, borderTopColor: '#e0e0e0' },
-  summaryText: { fontSize: 12, color: '#555', marginBottom: 6 },
-  dateButton: { backgroundColor: '#f0f0f0', padding: 12, borderRadius: 6, marginBottom: 10 },
-  disabledBtn: { opacity: 0.6 },
-  dateButtonText: { fontSize: 14, color: '#333' },
-  bookingButton: { backgroundColor: '#0284C7', padding: 15, borderRadius: 6, alignItems: 'center' },
-  bookingButtonDisabled: { opacity: 0.7 },
-  bookingButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  container: { 
+    padding: 16, 
+    paddingBottom: 30 
+  },
+  centered: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 16 
+  },
+  errorText: { 
+    fontSize: 16, 
+    color: 'red' 
+  },
+  image: { 
+    width: '100%', 
+    height: 200, 
+    borderRadius: 8, 
+    marginBottom: 16 
+  },
+  headerRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: '700', 
+    flex: 1, 
+    marginRight: 8 
+  },
+  typeBadge: { 
+    backgroundColor: '#0284C7', 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 12 
+  },
+  typeText: { 
+    color: '#fff', 
+    fontWeight: '600', 
+    fontSize: 12 
+  },
+  city: { 
+    fontSize: 18, 
+    color: '#666', 
+    marginBottom: 16 
+  },
+  iconRow: { 
+    flexDirection: 'row', 
+    marginBottom: 12 
+  },
+  iconItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginRight: 20 
+  },
+  iconText: { 
+    marginLeft: 6, 
+    color: '#4B5563' 
+  },
+  price: { 
+    fontSize: 18, 
+    fontWeight: '600', 
+    marginVertical: 12, 
+    color: '#0284C7' 
+  },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: '700', 
+    marginTop: 16, 
+    marginBottom: 6, 
+    color: '#1F2937' 
+  },
+  description: { 
+    fontSize: 16, 
+    lineHeight: 22, 
+    color: '#333' 
+  },
+  amenitiesContainer: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 8, 
+    marginVertical: 8 
+  },
+  amenityChip: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#10B981', 
+    paddingHorizontal: 10, 
+    paddingVertical: 6, 
+    borderRadius: 20, 
+    marginRight: 8, 
+    marginBottom: 8 
+  },
+  amenityText: { 
+    color: '#fff', 
+    fontSize: 14, 
+    marginLeft: 5 
+  },
+  ownerInfo: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 8 
+  },
+  ownerText: { 
+    marginLeft: 8, 
+    fontSize: 16, 
+    color: '#374151' 
+  },
+  
+  // Booking section styles
+  bookingSection: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  summaryText: { 
+    fontSize: 14, 
+    color: '#555', 
+    marginBottom: 12 
+  },
+  dateButton: { 
+    backgroundColor: '#f0f0f0', 
+    padding: 14, 
+    borderRadius: 8, 
+    marginBottom: 10 
+  },
+  disabledBtn: { 
+    opacity: 0.6 
+  },
+  dateButtonText: { 
+    fontSize: 16, 
+    color: '#333', 
+    textAlign: 'center' 
+  },
+  bookingButton: { 
+    backgroundColor: '#0284C7', 
+    padding: 15, 
+    borderRadius: 8, 
+    alignItems: 'center',
+    marginTop: 8
+  },
+  bookingButtonDisabled: { 
+    opacity: 0.7 
+  },
+  bookingButtonText: { 
+    color: '#fff', 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
 });
