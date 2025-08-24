@@ -5,16 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PropertyListScreen from '../screen/properties/PropertiesList';
 import BookingScreen from '../screen/booking/BookingsScreen';
+import CreatePropertyScreen from '../screen/properties/CreatePropertyScreen'; 
 
 export type MainTabsParamList = {
   Home: undefined;
   Bookings: undefined;
+  ListProperty: undefined;
   Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 
 export default function MainTabs() {
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <Tab.Navigator
@@ -43,13 +46,10 @@ export default function MainTabs() {
           tabBarIcon: ({ color, size }) => {
             let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
-            if (route.name === 'Home') {
-              iconName = 'home-outline';
-            } else if (route.name === 'Bookings') {
-              iconName = 'calendar-outline';
-            } else if (route.name === 'Profile') {
-              iconName = 'person-circle-outline';
-            }
+            if (route.name === 'Home') iconName = 'home-outline';
+            else if (route.name === 'Bookings') iconName = 'calendar-outline';
+            else if (route.name === 'ListProperty') iconName = 'business-outline';
+            else if (route.name === 'Profile') iconName = 'person-circle-outline';
 
             return <Ionicons name={iconName} size={size + 4} color={color} />;
           },
@@ -64,6 +64,11 @@ export default function MainTabs() {
           name="Bookings"
           component={BookingScreen}
           options={{ tabBarLabel: 'Bookings', headerTitle: 'My Bookings' }}
+        />
+        <Tab.Screen
+          name="ListProperty"
+          component={CreatePropertyScreen}
+          options={{ tabBarLabel: 'List Property', headerTitle: 'List a Property' }}
         />
         <Tab.Screen
           name="Profile"

@@ -9,6 +9,7 @@ import AuthNavigator from './AuthNavigator';
 import AdminTabNavigator from './AdminTabNavigator';
 import LandlordTabNavigator from './LandlordTabNavigator';
 import TenantTabNavigator from './TenantTabNavigator';
+import ApplyForLandlord from '../screen/landlord/ApplyForLanlord'
 import BookingScreen from '../screen/booking/BookingsScreen';
 import MainTabs from '../navigation/MainTab'
 import type { RootState } from '../store/store';
@@ -24,6 +25,7 @@ export type RootStackParamList = {
   LandlordTabs: undefined;
   AdminTabs: undefined;
   Booking: undefined;
+  ApplyForLandlord: undefined; 
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -60,6 +62,11 @@ export default function RootStackNavigator() {
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </>
       )}
+      <Stack.Screen
+        name="ApplyForLandlord"
+        component={ApplyForLandlord}
+        options={{ headerTitle: 'Become a Landlord' }}
+      />
       {token && role === 'tenant' && (
         <Stack.Screen name="TenantTabs" component={TenantTabNavigator} options={{ headerShown: false }} />
       )}
