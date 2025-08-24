@@ -25,6 +25,18 @@ export interface PaginatedProperties {
   limit: number;
 }
 
+export interface CreatePropertyArgs {
+  title: string;
+  description?: string;
+  city: string;
+  rentPerMonth: number;
+  numBedrooms: number;
+  numBathrooms: number;
+  propertyType: string;
+  amenities: string[];
+  images?: { url: string }[];
+}
+
 /**
  * Fetch a page of approved properties with optional filters.
  * 
@@ -37,4 +49,8 @@ export function fetchProperties(params: Record<string, any>) {
 export async function fetchPropertyById(id: string): Promise<Property> {
   const response = await axios.get<Property>(`${API_URL}/api/properties/${id}`);
   return response.data; 
+}
+
+export async function createProperty(  token: string,data: CreatePropertyArgs) {
+  return axios.post<Property>(`${API_URL}/api/properties`, data,  { headers: { Authorization: `Bearer ${token}` } });
 }

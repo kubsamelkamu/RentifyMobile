@@ -1,8 +1,7 @@
-// src/store/slices/propertiesSlice.ts
-
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import * as propsApi from '../../api/properties';
-import { Property, PaginatedProperties } from '../../api/properties';
+import { Property, PaginatedProperties, CreatePropertyArgs } from '../../api/properties';
+import type { RootState } from "../store";
 
 export interface FetchPropsArgs {
   page: number;
@@ -44,9 +43,25 @@ export const fetchPropertiesThunk = createAsyncThunk<
       const response = await propsApi.fetchProperties(params);
       return response.data as PaginatedProperties;
     } catch (err: any) {
-      return rejectWithValue(
-        err.response?.data?.error ?? err.message ?? 'Unknown error'
-      );
+      return rejectWithValue(err.response?.data?.error ?? err.message ?? 'Unknown error');
+    }
+  }
+);
+
+export const createProperty = createAsyncThunk<
+  Property,
+  CreatePropertyArgs,
+  { state: RootState; rejectValue: string }
+>(
+  'properties/create',
+  async (data, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) return rejectWithValue("Authentication required");
+      const response = await propsApi.createProperty(token, data);
+      return response.data as Property;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.error ?? err.message ?? 'Unknown error');
     }
   }
 );
@@ -57,7 +72,9 @@ interface PropertiesState {
   page: number;
   limit: number;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  createStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
+  createError: string | null;
 }
 
 const initialState: PropertiesState = {
@@ -66,7 +83,9 @@ const initialState: PropertiesState = {
   page: 1,
   limit: 9,
   status: 'idle',
+  createStatus: 'idle',
   error: null,
+  createError: null,
 };
 
 const propertiesSlice = createSlice({
@@ -80,6 +99,10 @@ const propertiesSlice = createSlice({
       state.error = null;
       state.status = 'idle';
     },
+    resetCreateProperty(state) {
+      state.createStatus = 'idle';
+      state.createError = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -87,22 +110,41 @@ const propertiesSlice = createSlice({
         state.status = 'loading';
         state.error = null;
       })
-      .addCase(
-        fetchPropertiesThunk.fulfilled,
-        (state, action: PayloadAction<PaginatedProperties>) => {
-          state.status = 'succeeded';
-          state.items = action.payload.data;
-          state.total = action.payload.total;
-          state.page = action.payload.page;
-          state.limit = action.payload.limit;
-        }
-      )
+      .addCase(fetchPropertiesThunk.fulfilled, (state, action: PayloadAction<PaginatedProperties>) => {
+        state.status = 'succeeded';
+        state.items = action.payload.data;
+        state.total = action.payload.total;
+        state.page = action.payload.page;
+        state.limit = action.payload.limit;
+      })
       .addCase(fetchPropertiesThunk.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload ?? 'Failed to fetch properties';
+      })
+      .addCase(createProperty.pending, (state) => {
+        state.createStatus = 'loading';
+        state.createError = null;
+      })
+      .addCase(createProperty.fulfilled, (state, action: PayloadAction<Property>) => {
+        state.createStatus = 'succeeded';
+
+        const normalized: Property = {
+          ...action.payload,
+          rentPerMonth: Number(action.payload.rentPerMonth), 
+          images: action.payload.images ?? [], 
+          amenities: action.payload.amenities ?? [],
+        };
+
+        state.items.unshift(normalized);
+      })
+      .addCase(createProperty.rejected, (state, action) => {
+        state.createStatus = 'failed';
+        state.createError = action.payload ?? 'Failed to create property';
       });
   },
 });
 
-export const { resetProperties } = propertiesSlice.actions;
+export const { resetProperties, resetCreateProperty } = propertiesSlice.actions;
 export default propertiesSlice.reducer;
+
+

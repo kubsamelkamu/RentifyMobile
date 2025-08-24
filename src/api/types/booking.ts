@@ -12,15 +12,19 @@ export interface Booking {
   paymentStatus: PaymentStatus;
   createdAt: string;
   updatedAt: string;
+  tenant?: { id: string; name: string };
+  landlord?: { id: string; name: string };
   property?: {
     id: string;
     title: string;
-    image: string;
-    location: string;
-    price: number;
-    currency: string;
+    description?: string;
+    city: string;
+    rentPerMonth: number;
+    images: { url: string }[];
+    image?: string; 
   };
 }
+
 
 export interface BookingPagination {
   page: number;

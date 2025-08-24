@@ -1,52 +1,46 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import {
-  fetchTenantBookingsApi,
-  fetchLandlordBookingsApi,
-  createBookingApi,
-  updateBookingApi,
-  deleteBookingApi,
-} from "../../api/booking";
-import type {
-  Booking,
-  PaginatedBookingResponse,
-  CreateBookingPayload,
-  UpdateBookingPayload,
-} from "../../api/types/booking";
-import { RootState } from "../store";
+import {createBookingApi,fetchTenantBookingsApi,fetchLandlordBookingsApi,confirmBookingApi,rejectBookingApi,cancelBookingApi,fetchPropertyBookingsApi,} from "../../api/booking";
+import type { Booking, CreateBookingPayload, PaginatedBookingResponse } from "../../api/types/booking";
+import type { RootState } from "../store";
 
 interface BookingState {
-  bookings: Booking[];
-  status: "idle" | "loading" | "succeeded" | "failed";
-  error: string | null;
-  page: number;
-  totalPages: number;
+
+  tenantBookings: Booking[];
+  landlordBookings: Booking[];
+  propertyBookings: Booking[];
+
+  tenantStatus: "idle" | "loading" | "succeeded" | "failed";
+  landlordStatus: "idle" | "loading" | "succeeded" | "failed";
+  tenantError: string | null;
+  landlordError: string | null;
+
+  tenantPage: number;
+  landlordPage: number;
+  tenantTotalPages: number;
+  landlordTotalPages: number;
+
+  currentBookingType: "tenant" | "landlord" | "property" | null;
 }
 
 const initialState: BookingState = {
-  bookings: [],
-  status: "idle",
-  error: null,
-  page: 1,
-  totalPages: 1,
+
+  tenantBookings: [],
+  landlordBookings: [],
+  propertyBookings: [],
+
+  tenantStatus: "idle",
+  landlordStatus: "idle",
+  tenantError: null,
+  landlordError: null,
+
+  tenantPage: 1,
+  landlordPage: 1,
+  tenantTotalPages: 1,
+  landlordTotalPages: 1,
+
+  currentBookingType: null,
 };
 
-// Fetch Tenant Bookings
-export const fetchTenantBookings = createAsyncThunk<
-  PaginatedBookingResponse,
-  { page?: number; limit?: number }
->("booking/fetchTenantBookings", async ({ page = 1, limit = 10 }) => {
-  return await fetchTenantBookingsApi(page, limit);
-});
-
-// Fetch Landlord Bookings
-export const fetchLandlordBookings = createAsyncThunk<
-  PaginatedBookingResponse,
-  { page?: number; limit?: number }
->("booking/fetchLandlordBookings", async ({ page = 1, limit = 10 }) => {
-  return await fetchLandlordBookingsApi(page, limit);
-});
-
-// Create Booking (needs token from auth state)
 export const createBooking = createAsyncThunk<
   Booking,
   CreateBookingPayload,
@@ -54,7 +48,7 @@ export const createBooking = createAsyncThunk<
 >("booking/createBooking", async (payload, { getState, rejectWithValue }) => {
   try {
     const token = getState().auth.token;
-    if (!token) return rejectWithValue("You must be logged in to create a booking.");
+    if (!token) return rejectWithValue("Authentication required");
     const booking = await createBookingApi(token, payload);
     return booking;
   } catch (err: any) {
@@ -62,130 +56,209 @@ export const createBooking = createAsyncThunk<
   }
 });
 
-// Update Booking
-export const updateBooking = createAsyncThunk<
-  Booking,
-  UpdateBookingPayload,
-  { rejectValue: string }
->("booking/updateBooking", async (payload, { rejectWithValue }) => {
+export const fetchTenantBookings = createAsyncThunk<
+  PaginatedBookingResponse,
+  { page: number; limit: number },
+  { state: RootState; rejectValue: string }
+>("booking/fetchTenantBookings", async ({ page, limit }, { getState, rejectWithValue }) => {
   try {
-    return await updateBookingApi(payload);
+    const token = getState().auth.token;
+    if (!token) return rejectWithValue("Authentication required");
+
+    const response = await fetchTenantBookingsApi(token, page, limit);
+    return response;
   } catch (err: any) {
-    return rejectWithValue(err.response?.data?.error || err.message || "Booking update failed");
+    return rejectWithValue(err.response?.data?.error || err.message || "Failed to fetch tenant bookings");
   }
 });
 
-// Delete Booking
-export const deleteBooking = createAsyncThunk<string, string, { rejectValue: string }>(
-  "booking/deleteBooking",
-  async (bookingId, { rejectWithValue }) => {
+export const fetchLandlordBookings = createAsyncThunk<
+  PaginatedBookingResponse,
+  { page: number; limit: number },
+  { state: RootState; rejectValue: string }
+>("booking/fetchLandlordBookings", async ({ page, limit }, { getState, rejectWithValue }) => {
+  try {
+    const token = getState().auth.token;
+    if (!token) return rejectWithValue("Authentication required");
+
+    const response = await fetchLandlordBookingsApi(token, page, limit);
+    return response;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.error || err.message || "Failed to fetch landlord bookings");
+  }
+});
+
+export const fetchPropertyBookings = createAsyncThunk<
+  Booking[],
+  string,
+  { state: RootState; rejectValue: string }
+>("booking/fetchPropertyBookings", async (propertyId, { getState, rejectWithValue }) => {
+  try {
+    const token = getState().auth.token;
+    if (!token) return rejectWithValue("Authentication required");
+
+    const bookings = await fetchPropertyBookingsApi(token, propertyId);
+    return bookings;
+  } catch (err: any) {
+    return rejectWithValue(err.response?.data?.error || err.message || "Failed to fetch property bookings");
+  }
+});
+
+export const confirmBooking = createAsyncThunk<Booking, string, { state: RootState; rejectValue: string }>(
+  "booking/confirmBooking",
+  async (bookingId, { getState, rejectWithValue }) => {
     try {
-      await deleteBookingApi(bookingId);
-      return bookingId;
+      const token = getState().auth.token;
+      if (!token) return rejectWithValue("Authentication required");
+
+      const booking = await confirmBookingApi(token, bookingId);
+      return booking;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.error || err.message || "Booking deletion failed");
+      return rejectWithValue(err.response?.data?.error || err.message || "Failed to confirm booking");
     }
   }
 );
+
+export const rejectBooking = createAsyncThunk<Booking, string, { state: RootState; rejectValue: string }>(
+  "booking/rejectBooking",
+  async (bookingId, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) return rejectWithValue("Authentication required");
+
+      const booking = await rejectBookingApi(token, bookingId);
+      return booking;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.error || err.message || "Failed to reject booking");
+    }
+  }
+);
+
+export const cancelBooking = createAsyncThunk<Booking, string, { state: RootState; rejectValue: string }>(
+  "booking/cancelBooking",
+  async (bookingId, { getState, rejectWithValue }) => {
+    try {
+      const token = getState().auth.token;
+      if (!token) return rejectWithValue("Authentication required");
+      const booking = await cancelBookingApi(token, bookingId);
+      return booking;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.error || err.message || "Failed to cancel booking");
+    }
+  }
+);
+
 
 const bookingSlice = createSlice({
   name: "booking",
   initialState,
   reducers: {
     resetBookings(state) {
-      state.bookings = [];
-      state.page = 1;
-      state.totalPages = 1;
-      state.status = "idle";
-      state.error = null;
+      state.tenantBookings = [];
+      state.landlordBookings = [];
+      state.propertyBookings = [];
+      state.tenantPage = 1;
+      state.landlordPage = 1;
+      state.tenantTotalPages = 1;
+      state.landlordTotalPages = 1;
+      state.tenantStatus = "idle";
+      state.landlordStatus = "idle";
+      state.tenantError = null;
+      state.landlordError = null;
+      state.currentBookingType = null;
+    },
+    setCurrentBookingType(state, action: PayloadAction<BookingState["currentBookingType"]>) {
+      state.currentBookingType = action.payload;
     },
   },
   extraReducers: (builder) => {
     builder
-      // Tenant Bookings
       .addCase(fetchTenantBookings.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+        state.tenantStatus = "loading";
+        state.tenantError = null;
+        state.currentBookingType = "tenant";
       })
       .addCase(fetchTenantBookings.fulfilled, (state, action: PayloadAction<PaginatedBookingResponse>) => {
-        state.status = "succeeded";
+        state.tenantStatus = "succeeded";
+        
         if (action.payload.pagination.page === 1) {
-          state.bookings = action.payload.bookings;
+          state.tenantBookings = action.payload.bookings;
         } else {
-          state.bookings = [...state.bookings, ...action.payload.bookings];
+          state.tenantBookings = [...state.tenantBookings, ...action.payload.bookings];
         }
-        state.page = action.payload.pagination.page;
-        state.totalPages = action.payload.pagination.totalPages;
+        
+        state.tenantPage = action.payload.pagination.page;
+        state.tenantTotalPages = action.payload.pagination.totalPages;
       })
       .addCase(fetchTenantBookings.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = "Failed to fetch tenant bookings";
+        state.tenantStatus = "failed";
+        state.tenantError = (action.payload as string) || action.error.message || "Failed to fetch tenant bookings";
       })
-
-      // Landlord Bookings
       .addCase(fetchLandlordBookings.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+        state.landlordStatus = "loading";
+        state.landlordError = null;
+        state.currentBookingType = "landlord";
       })
       .addCase(fetchLandlordBookings.fulfilled, (state, action: PayloadAction<PaginatedBookingResponse>) => {
-        state.status = "succeeded";
+        state.landlordStatus = "succeeded";
+        
         if (action.payload.pagination.page === 1) {
-          state.bookings = action.payload.bookings;
+          state.landlordBookings = action.payload.bookings;
         } else {
-          state.bookings = [...state.bookings, ...action.payload.bookings];
+          state.landlordBookings = [...state.landlordBookings, ...action.payload.bookings];
         }
-        state.page = action.payload.pagination.page;
-        state.totalPages = action.payload.pagination.totalPages;
+        state.landlordPage = action.payload.pagination.page;
+        state.landlordTotalPages = action.payload.pagination.totalPages;
       })
       .addCase(fetchLandlordBookings.rejected, (state, action) => {
-        state.status = "failed";
-        state.error =  "Failed to fetch landlord bookings";
+        state.landlordStatus = "failed";
+        state.landlordError = (action.payload as string) || action.error.message || "Failed to fetch landlord bookings";
       })
-
-      // Create Booking
-      .addCase(createBooking.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+      .addCase(fetchPropertyBookings.pending, (state) => {
+        state.currentBookingType = "property";
+        state.tenantStatus = "loading";
+        state.tenantError = null;
       })
-      .addCase(createBooking.fulfilled, (state, action: PayloadAction<Booking>) => {
-        state.status = "succeeded";
-        state.bookings.unshift(action.payload);
+      .addCase(fetchPropertyBookings.fulfilled, (state, action: PayloadAction<Booking[]>) => {
+        state.propertyBookings = action.payload;
+        state.tenantStatus = "succeeded";
       })
-      .addCase(createBooking.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload || action.error.message || "Failed to create booking";
+      .addCase(fetchPropertyBookings.rejected, (state, action) => {
+        state.tenantStatus = "failed";
+        state.tenantError = (action.payload as string) || action.error.message || "Failed to fetch property bookings";
       })
-
-      // Update Booking
-      .addCase(updateBooking.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
+      .addCase(confirmBooking.fulfilled, (state, action: PayloadAction<Booking>) => {
+        updateBookingInState(state, action.payload);
       })
-      .addCase(updateBooking.fulfilled, (state, action: PayloadAction<Booking>) => {
-        state.status = "succeeded";
-        const index = state.bookings.findIndex((b) => b.id === action.payload.id);
-        if (index !== -1) state.bookings[index] = action.payload;
+      .addCase(rejectBooking.fulfilled, (state, action: PayloadAction<Booking>) => {
+        updateBookingInState(state, action.payload);
       })
-      .addCase(updateBooking.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload || action.error.message || "Failed to update booking";
-      })
-
-      // Delete Booking
-      .addCase(deleteBooking.pending, (state) => {
-        state.status = "loading";
-        state.error = null;
-      })
-      .addCase(deleteBooking.fulfilled, (state, action: PayloadAction<string>) => {
-        state.status = "succeeded";
-        state.bookings = state.bookings.filter((b) => b.id !== action.payload);
-      })
-      .addCase(deleteBooking.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload || action.error.message || "Failed to delete booking";
+      .addCase(cancelBooking.fulfilled, (state, action: PayloadAction<Booking>) => {
+        updateBookingInState(state, action.payload);
       });
   },
 });
 
-export const { resetBookings } = bookingSlice.actions;
+function updateBookingInState(state: BookingState, updatedBooking: Booking) {
+  const updateArray = (arr: Booking[]) => {
+    const index = arr.findIndex((b) => b.id === updatedBooking.id);
+    if (index !== -1) {
+      arr[index] = {
+        ...arr[index],            
+        ...updatedBooking,       
+        property: arr[index].property || updatedBooking.property, 
+      };
+      return true;
+    }
+    return false;
+  };
+
+  updateArray(state.tenantBookings);
+  updateArray(state.landlordBookings);
+  updateArray(state.propertyBookings);
+}
+
+
+
+export const { resetBookings, setCurrentBookingType } = bookingSlice.actions;
 export default bookingSlice.reducer;
