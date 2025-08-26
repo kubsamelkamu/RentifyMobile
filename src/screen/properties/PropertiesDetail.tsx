@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import {View,Text,ActivityIndicator,Image,ScrollView,StyleSheet,TouchableOpacity,Alert,SafeAreaView,} from 'react-native';
+import {View,Text,ActivityIndicator,Image,ScrollView,StyleSheet,TouchableOpacity,Alert,SafeAreaView,}from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store/store';
 import { fetchPropertyById } from '../../api/properties';
 import type { Property } from '../../api/properties';
-import type { TenantStackParamList } from '../../navigation/TenantTabNavigator';
-import { FontAwesome5, MaterialIcons, Entypo } from '@expo/vector-icons';
 import { createBooking } from '../../store/slices/bookingSlice';
+import { FontAwesome5, MaterialIcons, Entypo } from '@expo/vector-icons';
+import type { TenantStackParamList } from '../../navigation/TenantTabNavigator';
 
 type PropertyDetailRouteProp = RouteProp<TenantStackParamList, 'PropertyDetail'>;
 
@@ -17,7 +17,8 @@ export default function PropertyDetailScreen() {
   const { id } = useRoute<PropertyDetailRouteProp>().params;
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
-  const { token, role } = useSelector((state: RootState) => state.auth);
+  const { token, role, user } = useSelector((state: RootState) => state.auth);
+
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,9 +99,20 @@ export default function PropertyDetailScreen() {
       const msg =
         err?.response?.data?.error || err?.message || 'Could not request booking. Please try again.';
       Alert.alert('Booking failed', msg);
-      console.log("Booking Error:", JSON.stringify(error, null, 2));
+      console.log("Booking Error:", JSON.stringify(err, null, 2));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleOpenChat = () => {
+    if (property?.id && property.landlord?.id) {
+      navigation.navigate('PropertyChat', { 
+        propertyId: property.id, 
+        landlordId: property.landlord.id 
+      });
+    } else {
+      Alert.alert('Chat unavailable', 'Landlord info not found.');
     }
   };
 
@@ -115,6 +127,7 @@ export default function PropertyDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {property.images?.[0]?.url && <Image source={{ uri: property.images[0].url }} style={styles.image} />}
+        
         <View style={styles.headerRow}>
           <Text style={styles.title}>{property.title}</Text>
           <View style={styles.typeBadge}>
@@ -199,7 +212,6 @@ export default function PropertyDetailScreen() {
 
         <Text style={styles.sectionTitle}>Description</Text>
         <Text style={styles.description}>{property.description || 'No description provided.'}</Text>
-
         {property.amenities?.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Amenities</Text>
@@ -223,164 +235,53 @@ export default function PropertyDetailScreen() {
           <MaterialIcons name="email" size={20} color="#0284C7" />
           <Text style={styles.ownerText}>{property.landlord?.email || 'N/A'}</Text>
         </View>
+
+        {property?.landlord?.id && token && role && (
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={handleOpenChat}
+          >
+            <Text style={styles.chatButtonText}>
+              {role.toLowerCase() === 'tenant' ? 'Chat with Landlord' : 'View Property Chat'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { 
-    padding: 16, 
-    paddingBottom: 30 
-  },
-  centered: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    padding: 16 
-  },
-  errorText: { 
-    fontSize: 16, 
-    color: 'red' 
-  },
-  image: { 
-    width: '100%', 
-    height: 200, 
-    borderRadius: 8, 
-    marginBottom: 16 
-  },
-  headerRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
-  },
-  title: { 
-    fontSize: 24, 
-    fontWeight: '700', 
-    flex: 1, 
-    marginRight: 8 
-  },
-  typeBadge: { 
-    backgroundColor: '#0284C7', 
-    paddingHorizontal: 8, 
-    paddingVertical: 4, 
-    borderRadius: 12 
-  },
-  typeText: { 
-    color: '#fff', 
-    fontWeight: '600', 
-    fontSize: 12 
-  },
-  city: { 
-    fontSize: 18, 
-    color: '#666', 
-    marginBottom: 16 
-  },
-  iconRow: { 
-    flexDirection: 'row', 
-    marginBottom: 12 
-  },
-  iconItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginRight: 20 
-  },
-  iconText: { 
-    marginLeft: 6, 
-    color: '#4B5563' 
-  },
-  price: { 
-    fontSize: 18, 
-    fontWeight: '600', 
-    marginVertical: 12, 
-    color: '#0284C7' 
-  },
-  sectionTitle: { 
-    fontSize: 18, 
-    fontWeight: '700', 
-    marginTop: 16, 
-    marginBottom: 6, 
-    color: '#1F2937' 
-  },
-  description: { 
-    fontSize: 16, 
-    lineHeight: 22, 
-    color: '#333' 
-  },
-  amenitiesContainer: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    gap: 8, 
-    marginVertical: 8 
-  },
-  amenityChip: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#10B981', 
-    paddingHorizontal: 10, 
-    paddingVertical: 6, 
-    borderRadius: 20, 
-    marginRight: 8, 
-    marginBottom: 8 
-  },
-  amenityText: { 
-    color: '#fff', 
-    fontSize: 14, 
-    marginLeft: 5 
-  },
-  ownerInfo: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginTop: 8 
-  },
-  ownerText: { 
-    marginLeft: 8, 
-    fontSize: 16, 
-    color: '#374151' 
-  },
-  
-  // Booking section styles
-  bookingSection: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  summaryText: { 
-    fontSize: 14, 
-    color: '#555', 
-    marginBottom: 12 
-  },
-  dateButton: { 
-    backgroundColor: '#f0f0f0', 
-    padding: 14, 
-    borderRadius: 8, 
-    marginBottom: 10 
-  },
-  disabledBtn: { 
-    opacity: 0.6 
-  },
-  dateButtonText: { 
-    fontSize: 16, 
-    color: '#333', 
-    textAlign: 'center' 
-  },
-  bookingButton: { 
-    backgroundColor: '#0284C7', 
-    padding: 15, 
-    borderRadius: 8, 
-    alignItems: 'center',
-    marginTop: 8
-  },
-  bookingButtonDisabled: { 
-    opacity: 0.7 
-  },
-  bookingButtonText: { 
-    color: '#fff', 
-    fontSize: 16, 
-    fontWeight: 'bold' 
-  },
+  container: { padding: 16, paddingBottom: 30 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+  errorText: { fontSize: 16, color: 'red' },
+  image: { width: '100%', height: 200, borderRadius: 8, marginBottom: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: '700', flex: 1, marginRight: 8 },
+  typeBadge: { backgroundColor: '#0284C7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  typeText: { color: '#fff', fontWeight: '600', fontSize: 12 },
+  city: { fontSize: 18, color: '#666', marginBottom: 16 },
+  iconRow: { flexDirection: 'row', marginBottom: 12 },
+  iconItem: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
+  iconText: { marginLeft: 6, color: '#4B5563' },
+  price: { fontSize: 18, fontWeight: '600', marginVertical: 12, color: '#0284C7' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginTop: 16, marginBottom: 6, color: '#1F2937' },
+  description: { fontSize: 16, lineHeight: 22, color: '#333' },
+  amenitiesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 8 },
+  amenityChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginRight: 8, marginBottom: 8 },
+  amenityText: { color: '#fff', fontSize: 14, marginLeft: 5 },
+  ownerInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  ownerText: { marginLeft: 8, fontSize: 16, color: '#374151' },
+  bookingSection: { backgroundColor: '#f8f9fa', borderRadius: 12, padding: 16, marginVertical: 16, borderWidth: 1, borderColor: '#e0e0e0' },
+  summaryText: { fontSize: 14, color: '#555', marginBottom: 12 },
+  dateButton: { backgroundColor: '#f0f0f0', padding: 14, borderRadius: 8, marginBottom: 10 },
+  disabledBtn: { opacity: 0.6 },
+  dateButtonText: { fontSize: 16, color: '#333', textAlign: 'center' },
+  bookingButton: { backgroundColor: '#0284C7', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  bookingButtonDisabled: { opacity: 0.7 },
+  bookingButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  chatButton: { backgroundColor: '#10B981', padding: 15, borderRadius: 12, alignItems: 'center', marginVertical: 16 },
+  chatButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
