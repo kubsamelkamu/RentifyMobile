@@ -2,6 +2,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import PropertyDetailScreen from '../screen/properties/PropertiesDetail';
+import PropertyChatScreen from '../screen/chat/chatScreen'
 import LoginScreen from '../screen/auth/LoginScreen';
 import RegisterScreen from '../screen/auth/RegisterScreen';
 import ForgotPasswordScreen from '../screen/auth/ForgotPasswordScreen';
@@ -9,14 +10,15 @@ import AuthNavigator from './AuthNavigator';
 import AdminTabNavigator from './AdminTabNavigator';
 import LandlordTabNavigator from './LandlordTabNavigator';
 import TenantTabNavigator from './TenantTabNavigator';
-import ApplyForLandlord from '../screen/landlord/ApplyForLanlord'
+import ApplyForLandlord from '../screen/landlord/ApplyForLanlord';
 import BookingScreen from '../screen/booking/BookingsScreen';
-import MainTabs from '../navigation/MainTab'
+import MainTabs from '../navigation/MainTab';
 import type { RootState } from '../store/store';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   PropertyDetail: { id: string };
+  PropertyChat: { propertyId: string }; 
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
@@ -25,12 +27,13 @@ export type RootStackParamList = {
   LandlordTabs: undefined;
   AdminTabs: undefined;
   Booking: undefined;
-  ApplyForLandlord: undefined; 
+  ApplyForLandlord: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootStackNavigator() {
+
   const { token, role } = useSelector((state: RootState) => state.auth);
 
   return (
@@ -44,6 +47,11 @@ export default function RootStackNavigator() {
         name="PropertyDetail"
         component={PropertyDetailScreen}
         options={{ headerTitle: 'Property Detail' }}
+      />
+      <Stack.Screen
+        name="PropertyChat"
+        component={PropertyChatScreen}
+        options={{ headerTitle: 'Property Chat' }} 
       />
       <Stack.Screen
         name="Booking"

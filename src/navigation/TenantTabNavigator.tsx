@@ -6,6 +6,7 @@ import PropertyDetailScreen from '../screen/properties/PropertiesDetail';
 export type TenantStackParamList = {
   PropertyList: undefined;
   PropertyDetail: { id: string };
+  PropertyChat: { propertyId: string; landlordId: string };
 };
 
 const Stack = createNativeStackNavigator<TenantStackParamList>();

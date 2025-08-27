@@ -4,7 +4,6 @@ import type { Booking, CreateBookingPayload, PaginatedBookingResponse } from "..
 import type { RootState } from "../store";
 
 interface BookingState {
-
   tenantBookings: Booking[];
   landlordBookings: Booking[];
   propertyBookings: Booking[];
@@ -23,7 +22,7 @@ interface BookingState {
 }
 
 const initialState: BookingState = {
-
+  
   tenantBookings: [],
   landlordBookings: [],
   propertyBookings: [],
@@ -149,6 +148,7 @@ export const cancelBooking = createAsyncThunk<Booking, string, { state: RootStat
 );
 
 
+
 const bookingSlice = createSlice({
   name: "booking",
   initialState,
@@ -170,9 +170,47 @@ const bookingSlice = createSlice({
     setCurrentBookingType(state, action: PayloadAction<BookingState["currentBookingType"]>) {
       state.currentBookingType = action.payload;
     },
+
+    addBooking(state, action: PayloadAction<{ booking: Booking; role: "tenant" | "landlord" | null }>) {
+      const { booking, role } = action.payload;
+      if (role === "tenant") state.tenantBookings = [booking, ...state.tenantBookings];
+      else if (role === "landlord") state.landlordBookings = [booking, ...state.landlordBookings];
+    },
+    updateBooking(state, action: PayloadAction<Booking>) {
+    const updatedBooking = action.payload;
+
+    const updateArray = (arr: Booking[]) => {
+      const index = arr.findIndex((b) => b.id === updatedBooking.id);
+      if (index !== -1) {
+        arr[index] = { ...arr[index], ...updatedBooking };
+      }
+    };
+
+    updateArray(state.tenantBookings);
+    updateArray(state.landlordBookings);
+    updateArray(state.propertyBookings);
+  },
+
+    updateBookingStatus(
+      state,
+      action: PayloadAction<{
+        bookingId: string;
+        status: "pending" | "confirmed" | "cancelled";
+        role: "tenant" | "landlord" | null;
+      }>
+    ) {
+      const { bookingId, status, role } = action.payload;
+      const updateArray = (arr: Booking[]) => {
+        const index = arr.findIndex((b) => b.id === bookingId);
+        if (index !== -1) arr[index] = { ...arr[index], status };
+      };
+      if (role === "tenant") updateArray(state.tenantBookings);
+      if (role === "landlord") updateArray(state.landlordBookings);
+    },
   },
   extraReducers: (builder) => {
     builder
+
       .addCase(fetchTenantBookings.pending, (state) => {
         state.tenantStatus = "loading";
         state.tenantError = null;
@@ -180,13 +218,8 @@ const bookingSlice = createSlice({
       })
       .addCase(fetchTenantBookings.fulfilled, (state, action: PayloadAction<PaginatedBookingResponse>) => {
         state.tenantStatus = "succeeded";
-        
-        if (action.payload.pagination.page === 1) {
-          state.tenantBookings = action.payload.bookings;
-        } else {
-          state.tenantBookings = [...state.tenantBookings, ...action.payload.bookings];
-        }
-        
+        if (action.payload.pagination.page === 1) state.tenantBookings = action.payload.bookings;
+        else state.tenantBookings = [...state.tenantBookings, ...action.payload.bookings];
         state.tenantPage = action.payload.pagination.page;
         state.tenantTotalPages = action.payload.pagination.totalPages;
       })
@@ -194,6 +227,7 @@ const bookingSlice = createSlice({
         state.tenantStatus = "failed";
         state.tenantError = (action.payload as string) || action.error.message || "Failed to fetch tenant bookings";
       })
+
       .addCase(fetchLandlordBookings.pending, (state) => {
         state.landlordStatus = "loading";
         state.landlordError = null;
@@ -201,12 +235,8 @@ const bookingSlice = createSlice({
       })
       .addCase(fetchLandlordBookings.fulfilled, (state, action: PayloadAction<PaginatedBookingResponse>) => {
         state.landlordStatus = "succeeded";
-        
-        if (action.payload.pagination.page === 1) {
-          state.landlordBookings = action.payload.bookings;
-        } else {
-          state.landlordBookings = [...state.landlordBookings, ...action.payload.bookings];
-        }
+        if (action.payload.pagination.page === 1) state.landlordBookings = action.payload.bookings;
+        else state.landlordBookings = [...state.landlordBookings, ...action.payload.bookings];
         state.landlordPage = action.payload.pagination.page;
         state.landlordTotalPages = action.payload.pagination.totalPages;
       })
@@ -214,6 +244,7 @@ const bookingSlice = createSlice({
         state.landlordStatus = "failed";
         state.landlordError = (action.payload as string) || action.error.message || "Failed to fetch landlord bookings";
       })
+
       .addCase(fetchPropertyBookings.pending, (state) => {
         state.currentBookingType = "property";
         state.tenantStatus = "loading";
@@ -227,6 +258,7 @@ const bookingSlice = createSlice({
         state.tenantStatus = "failed";
         state.tenantError = (action.payload as string) || action.error.message || "Failed to fetch property bookings";
       })
+
       .addCase(confirmBooking.fulfilled, (state, action: PayloadAction<Booking>) => {
         updateBookingInState(state, action.payload);
       })
@@ -243,22 +275,15 @@ function updateBookingInState(state: BookingState, updatedBooking: Booking) {
   const updateArray = (arr: Booking[]) => {
     const index = arr.findIndex((b) => b.id === updatedBooking.id);
     if (index !== -1) {
-      arr[index] = {
-        ...arr[index],            
-        ...updatedBooking,       
-        property: arr[index].property || updatedBooking.property, 
-      };
+      arr[index] = { ...arr[index], ...updatedBooking, property: arr[index].property || updatedBooking.property };
       return true;
     }
     return false;
   };
-
   updateArray(state.tenantBookings);
   updateArray(state.landlordBookings);
   updateArray(state.propertyBookings);
 }
 
-
-
-export const { resetBookings, setCurrentBookingType } = bookingSlice.actions;
+export const { resetBookings, setCurrentBookingType, addBooking, updateBookingStatus,  updateBooking,   } = bookingSlice.actions;
 export default bookingSlice.reducer;
