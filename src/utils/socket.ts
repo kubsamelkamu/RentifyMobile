@@ -4,6 +4,11 @@ import Constants from 'expo-constants';
 const SOCKET_URL = Constants.expoConfig!.extra!.API_URL as string;
 
 export interface ServerToClientEvents {
+
+  newBooking: (booking: any) => void;
+  bookingStatusUpdate: (booking: any) => void;
+  paymentStatusUpdated: (payload: { bookingId: string; paymentStatus: 'PENDING' | 'SUCCESS' | 'FAILED' }) => void;
+
   newMessage: (msg: unknown) => void;
   messageDeleted: (payload: { messageId: string }) => void;
   messageEdited: (msg: unknown) => void;
@@ -14,18 +19,9 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   joinRoom: (room: string) => void;
   leaveRoom: (room: string) => void;
-  sendMessage: (
-    payload: { propertyId: string; content: string },
-    ack: (res: unknown) => void
-  ) => void;
-  deleteMessage: (
-    payload: { propertyId: string; messageId: string },
-    ack: (res: unknown) => void
-  ) => void;
-  editMessage: (
-    payload: { propertyId: string; messageId: string; newContent: string },
-    ack: (res: unknown) => void
-  ) => void;
+  sendMessage: (payload: { propertyId: string; content: string }, ack: (res: unknown) => void) => void;
+  deleteMessage: (payload: { propertyId: string; messageId: string }, ack: (res: unknown) => void) => void;
+  editMessage: (payload: { propertyId: string; messageId: string; newContent: string }, ack: (res: unknown) => void) => void;
   typing: (payload: { propertyId: string; userId: string; isTyping: boolean }) => void;
 }
 
@@ -35,9 +31,7 @@ const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(SOCKET_URL
 });
 
 export function connectSocket(token: string) {
-
-  if (!token) 
-    return;
+  if (!token) return;
   socket.auth = { token };
   socket.connect();
 }
