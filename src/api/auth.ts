@@ -4,12 +4,13 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const API_URL = Constants.expoConfig!.extra!.API_URL as string;
-
+ 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'TENANT' | 'LANDLORD' | 'ADMIN' | 'SUPER_ADMIN';
+  isVerified: boolean;
 }
 export interface AuthResponse {
   token: string;
@@ -29,8 +30,8 @@ export function verifyEmail(token: string) {
 export function forgotPassword(email: string) {
   return axios.post(`${API_URL}/api/auth/forgot-password`, { email });
 }
-export function resetPassword(token: string, password: string) {
-  return axios.post(`${API_URL}/api/auth/reset-password`, { token, password });
+export function resetPassword(token: string, newPassword: string) {
+  return axios.post(`${API_URL}/api/auth/reset-password`, { token, newPassword });
 }
 
 export async function applyForLandlord(formData: FormData) {
@@ -66,4 +67,16 @@ export async function applyForLandlord(formData: FormData) {
   } catch {
     return {} as any;
   }
+}
+
+export function verifyOtp(email: string, otp: string) {
+  return axios.post<AuthResponse>(`${API_URL}/api/auth/verify-otp`, { email, otp });
+}
+
+export function resendOtp(email: string) {
+  return axios.post(`${API_URL}/api/auth/resend-otp`, { email });
+}
+
+export function verifyResetOtp(email: string, otp: string) {
+  return axios.post<{ resetToken: string }>(`${API_URL}/api/auth/verify-reset-otp`, { email, otp });
 }
