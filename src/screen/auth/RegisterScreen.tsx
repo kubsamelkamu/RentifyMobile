@@ -1,17 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {View, Text, TextInput, ActivityIndicator,StyleSheet, ScrollView, TouchableOpacity,KeyboardAvoidingView, Platform,} from 'react-native';
-import Checkbox from 'expo-checkbox';
-import MaskedView from '@react-native-masked-view/masked-view';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useForm, Controller } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
-import { clearError, registerUser, AuthState } from '../../store/slices/authSlice';
-import type { AppDispatch, RootState } from '../../store/store';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../navigation/AuthNavigator';
-import { colors, spacing, radii, fontSizes } from '../../style/shared/theme';
+import React, { useEffect, useState } from "react";
+import {View,Text,TextInput,ActivityIndicator,ScrollView,TouchableOpacity,KeyboardAvoidingView,Platform,StyleSheet,} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import Checkbox from "expo-checkbox";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { LinearGradient } from "expo-linear-gradient";
+import { useForm, Controller } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
+import {registerUser,clearError,setEmail,AuthState,} from "../../store/slices/authSlice";
+import type { AppDispatch, RootState } from "../../store/store";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { AuthStackParamList } from "../../navigation/AuthNavigator";
+import { colors, spacing, radii, fontSizes } from "../../style/shared/theme";
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
 
 interface RegisterForm {
   fullName: string;
@@ -21,65 +22,75 @@ interface RegisterForm {
 }
 
 export default function RegisterScreen({ navigation }: Props) {
+
   const { control, handleSubmit, setError } = useForm<RegisterForm>();
   const dispatch = useDispatch<AppDispatch>();
-  const status = useSelector<RootState, AuthState['status']>(s => s.auth.status);
-  const apiError = useSelector<RootState, AuthState['error']>(s => s.auth.error);
+  const status = useSelector<RootState, AuthState["status"]>(
+    (s) => s.auth.status
+  );
+  const apiError = useSelector<RootState, AuthState["error"]>(
+    (s) => s.auth.error
+  );
 
   const [agree, setAgree] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const prevStatus = useRef<AuthState['status']>(status);
   useEffect(() => {
     dispatch(clearError());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (prevStatus.current !== 'succeeded' && status === 'succeeded') {
-      const timer = setTimeout(() => {
-        navigation.navigate('VerifyEmailInfo');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-    prevStatus.current = status;
-  }, [status, navigation]);
-
-  const onSubmit = (data: RegisterForm) => {
+  const onSubmit = async (data: RegisterForm) => {
     if (!agree) {
-      setError('fullName', { message: 'You must agree to the terms.' });
+      setError("fullName", { message: "You must agree to the terms." });
       return;
     }
     if (data.password !== data.confirmPassword) {
-      setError('confirmPassword', { message: 'Passwords do not match' });
+      setError("confirmPassword", { message: "Passwords do not match" });
       return;
     }
-    dispatch(registerUser({
-      name: data.fullName,
-      email: data.email,
-      password: data.password,
-    }));
+
+    try {
+      const resultAction = await dispatch(
+        registerUser({
+          name: data.fullName,
+          email: data.email,
+          password: data.password,
+        })
+      ).unwrap();
+      dispatch(setEmail(resultAction.user.email));
+      navigation.navigate("VerifyOtp", { email: resultAction.user.email, type: "register" });
+    } catch (err) {
+      console.log("Registration error:", err);
+    }
   };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      behavior={Platform.select({ ios: "padding", android: undefined })}
     >
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          <MaskedView maskElement={<Text style={[styles.title, { backgroundColor: 'transparent' }]}>Rentify</Text>}>
+          <MaskedView
+            maskElement={
+              <Text style={[styles.title, { backgroundColor: "transparent" }]}>
+                Rentify
+              </Text>
+            }
+          >
             <LinearGradient
               colors={[colors.purpleStart, colors.purpleEnd]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
             >
               <Text style={[styles.title, { opacity: 0 }]}>Rentify</Text>
             </LinearGradient>
           </MaskedView>
-
           <Text style={styles.subtitle}>Create an account</Text>
-
           {apiError && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{apiError}</Text>
@@ -89,7 +100,7 @@ export default function RegisterScreen({ navigation }: Props) {
             control={control}
             name="fullName"
             defaultValue=""
-            rules={{ required: 'Full name is required' }}
+            rules={{ required: "Full name is required" }}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
               <>
                 <TextInput
@@ -97,7 +108,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   placeholder="Full Name"
                   value={value}
                   onChangeText={onChange}
-                  editable={status !== 'loading'}
+                  editable={status !== "loading"}
                 />
                 {error && <Text style={styles.inputError}>{error.message}</Text>}
               </>
@@ -107,7 +118,7 @@ export default function RegisterScreen({ navigation }: Props) {
             control={control}
             name="email"
             defaultValue=""
-            rules={{ required: 'Email is required' }}
+            rules={{ required: "Email is required" }}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
               <>
                 <TextInput
@@ -117,7 +128,7 @@ export default function RegisterScreen({ navigation }: Props) {
                   autoCapitalize="none"
                   value={value}
                   onChangeText={onChange}
-                  editable={status !== 'loading'}
+                  editable={status !== "loading"}
                 />
                 {error && <Text style={styles.inputError}>{error.message}</Text>}
               </>
@@ -127,53 +138,78 @@ export default function RegisterScreen({ navigation }: Props) {
             control={control}
             name="password"
             defaultValue=""
-            rules={{ required: 'Password is required' }}
+            rules={{ required: "Password is required" }}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  secureTextEntry
-                  value={value}
-                  onChangeText={onChange}
-                  editable={status !== 'loading'}
-                />
+              <View>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Password"
+                    secureTextEntry={!showPassword}
+                    value={value}
+                    onChangeText={onChange}
+                    editable={status !== "loading"}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Ionicons
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={24}
+                      color={colors.purpleEnd}
+                    />
+                  </TouchableOpacity>
+                </View>
                 {error && <Text style={styles.inputError}>{error.message}</Text>}
-              </>
+              </View>
             )}
           />
           <Controller
             control={control}
             name="confirmPassword"
             defaultValue=""
-            rules={{ required: 'Confirm your password' }}
+            rules={{ required: "Confirm your password" }}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Confirm Password"
-                  secureTextEntry
-                  value={value}
-                  onChangeText={onChange}
-                  editable={status !== 'loading'}
-                />
+              <View>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Confirm Password"
+                    secureTextEntry={!showConfirmPassword}
+                    value={value}
+                    onChangeText={onChange}
+                    editable={status !== "loading"}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? "eye-off" : "eye"}
+                      size={24}
+                      color={colors.purpleEnd}
+                    />
+                  </TouchableOpacity>
+                </View>
                 {error && <Text style={styles.inputError}>{error.message}</Text>}
-              </>
+              </View>
             )}
           />
           <View style={styles.checkboxContainer}>
             <Checkbox value={agree} onValueChange={setAgree} />
-            <Text style={styles.checkboxText}>I agree to the Terms and Conditions</Text>
+            <Text style={styles.checkboxText}>
+              I agree to the Terms and Conditions
+            </Text>
           </View>
-          {status === 'loading' ? (
+          {status === "loading" ? (
             <ActivityIndicator style={{ marginTop: spacing.lg }} />
           ) : (
             <GradientButton title="Register" onPress={handleSubmit(onSubmit)} />
           )}
-
           <View style={styles.linksContainer}>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkText}>Remembered your password? Login</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.linkText}>Already have an account? Login</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -213,34 +249,34 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: spacing.md,
   },
   card: {
-    width: '100%',
+    width: "100%",
     maxWidth: 448,
     backgroundColor: colors.white,
     padding: spacing.xl,
-    borderRadius: radii['3xl'],
+    borderRadius: radii["3xl"],
     shadowColor: colors.black,
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 16,
     elevation: 8,
-    alignItems: 'stretch',
+    alignItems: "stretch",
   },
   title: {
     fontSize: fontSizes.h1,
-    fontWeight: '800',
-    textAlign: 'center',
+    fontWeight: "800",
+    textAlign: "center",
     marginBottom: spacing.lg,
   },
   subtitle: {
     fontSize: fontSizes.h2,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.gray700,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.md,
   },
   errorBanner: {
@@ -251,12 +287,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.red700,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: fontSizes.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     borderRadius: radii.md,
     padding: spacing.sm,
     marginBottom: spacing.sm,
@@ -268,9 +304,26 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     fontSize: fontSizes.sm,
   },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: radii.md,
+    marginBottom: spacing.sm,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: spacing.sm,
+    fontSize: fontSizes.base,
+    color: colors.black,
+  },
+  eyeIcon: {
+    padding: spacing.sm,
+  },
   checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: spacing.md,
   },
   checkboxText: {
@@ -278,26 +331,9 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colors.gray700,
   },
-  buttonWrapper: {
-    borderRadius: radii.lg,
-    marginTop: spacing.lg,
-  },
-  buttonTouchable: {
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: colors.white,
-    fontWeight: '600',
-    fontSize: fontSizes.base,
-  },
-  linksContainer: {
-    marginTop: spacing.lg,
-    alignItems: 'center',
-  },
-  linkText: {
-    fontSize: fontSizes.sm,
-    color: colors.purpleStart,
-    marginTop: spacing.sm,
-  },
+  buttonWrapper: { borderRadius: radii.lg, marginTop: spacing.lg },
+  buttonTouchable: { paddingVertical: spacing.sm, alignItems: "center" },
+  buttonText: { color: colors.white, fontWeight: "600", fontSize: fontSizes.base },
+  linksContainer: { marginTop: spacing.lg, alignItems: "center" },
+  linkText: { fontSize: fontSizes.sm, color: colors.purpleStart, marginTop: spacing.sm },
 });
