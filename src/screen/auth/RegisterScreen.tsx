@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import {View,Text,TextInput,ActivityIndicator,ScrollView,TouchableOpacity,KeyboardAvoidingView,Platform,StyleSheet,} from "react-native";
+import {View,Text,TextInput,ActivityIndicator,ScrollView,TouchableOpacity,KeyboardAvoidingView,Platform,StyleSheet,Linking,} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Checkbox from "expo-checkbox";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { useForm, Controller } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
-import {registerUser,clearError,setEmail,AuthState,} from "../../store/slices/authSlice";
+import { registerUser, clearError, setEmail, AuthState } from "../../store/slices/authSlice";
 import type { AppDispatch, RootState } from "../../store/store";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/AuthNavigator";
@@ -22,7 +22,6 @@ interface RegisterForm {
 }
 
 export default function RegisterScreen({ navigation }: Props) {
-
   const { control, handleSubmit, setError } = useForm<RegisterForm>();
   const dispatch = useDispatch<AppDispatch>();
   const status = useSelector<RootState, AuthState["status"]>(
@@ -91,11 +90,14 @@ export default function RegisterScreen({ navigation }: Props) {
             </LinearGradient>
           </MaskedView>
           <Text style={styles.subtitle}>Create an account</Text>
+
           {apiError && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{apiError}</Text>
             </View>
           )}
+
+          {/* Form Fields */}
           <Controller
             control={control}
             name="fullName"
@@ -134,6 +136,7 @@ export default function RegisterScreen({ navigation }: Props) {
               </>
             )}
           />
+          {/* Password Field */}
           <Controller
             control={control}
             name="password"
@@ -199,7 +202,13 @@ export default function RegisterScreen({ navigation }: Props) {
           <View style={styles.checkboxContainer}>
             <Checkbox value={agree} onValueChange={setAgree} />
             <Text style={styles.checkboxText}>
-              I agree to the Terms and Conditions
+              I agree to the{' '}
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://rentify-liard-mu.vercel.app/terms&conditions')}
+              >
+                Terms and Conditions
+              </Text>
             </Text>
           </View>
           {status === "loading" ? (
@@ -335,5 +344,5 @@ const styles = StyleSheet.create({
   buttonTouchable: { paddingVertical: spacing.sm, alignItems: "center" },
   buttonText: { color: colors.white, fontWeight: "600", fontSize: fontSizes.base },
   linksContainer: { marginTop: spacing.lg, alignItems: "center" },
-  linkText: { fontSize: fontSizes.sm, color: colors.purpleStart, marginTop: spacing.sm },
+  linkText: { fontSize: fontSizes.sm, color: colors.purpleStart, marginTop: spacing.sm, textDecorationLine: 'underline' },
 });
