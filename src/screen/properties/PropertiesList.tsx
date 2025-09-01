@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { View,Text,FlatList,RefreshControl,ActivityIndicator,TouchableOpacity,Image,StyleSheet,} from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,6 +11,8 @@ import type { AppDispatch, RootState } from '../../store/store';
 import type { Property } from '../../api/properties';
 import HeroSection from '../../component/HeroSection';
 import FilterPanel, { PropertyFilters } from '../../component/FilterPanel';
+import { fetchPropertyReviews } from '../../store/slices/reviewSlice';
+import socket, { connectSocket, disconnectSocket } from '../../utils/socket';
 
 type Props = { isInTab?: boolean };
 
@@ -25,12 +27,13 @@ const SkeletonCard = () => (
 type StackNavProp = NativeStackNavigationProp<RootStackParamList, 'PropertyDetail'>;
 
 export default function PropertyListScreen({ isInTab = false }: Props) {
-  
+
   const dispatch = useDispatch<AppDispatch>();
   const { items, status, total, limit } = useSelector((state: RootState) => state.properties)!;
   const { token } = useSelector((state: RootState) => state.auth);
+  const { reviewsByProperty } = useSelector((s: RootState) => s.review);
+  const requested = useRef<Set<string>>(new Set());
   const navigation = useNavigation<StackNavProp>();
-
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<PropertyFilters>({});
   const [refreshing, setRefreshing] = useState(false);
@@ -62,9 +65,42 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
     load();
   }, [dispatch, filters, page, limit]);
 
+  useEffect(() => {
+    if (!items?.length) return;
+
+    items.forEach((prop) => {
+      const id = prop.id;
+      const hasBucket = !!reviewsByProperty[id];
+      if (!hasBucket && !requested.current.has(id)) {
+        requested.current.add(id);
+        dispatch(fetchPropertyReviews({ propertyId: id, page: 1, limit: 1 }));
+      }
+    });
+  }, [items, reviewsByProperty, dispatch]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const reload = () => {
+      dispatch(fetchPropertiesThunk({ ...filters, page, limit }));
+    };
+
+    connectSocket(token);
+
+    socket.on("listing:approved", reload);
+    socket.on("listing:pending", reload);
+
+    return () => {
+      socket.off("listing:approved", reload);
+      socket.off("listing:pending", reload);
+      disconnectSocket();
+    };
+  }, [token, dispatch, filters, page, limit]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(1);
+    requested.current.clear(); 
     dispatch(fetchPropertiesThunk({ ...filters, page: 1, limit })).finally(() => setRefreshing(false));
   }, [dispatch, filters, limit]);
 
@@ -83,37 +119,55 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Property }) => (
-      <View style={styles.card}>
-        <TouchableOpacity onPress={() => goToDetail(item.id)}>
-          {item.images[0]?.url && (
-            <Image source={{ uri: item.images[0].url }} style={styles.cardImage} resizeMode="cover" />
-          )}
-        </TouchableOpacity>
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          <Text style={styles.cardSubtitle}>{item.city}</Text>
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Ionicons name="bed-outline" size={16} />
-              <Text style={styles.metaText}>{item.numBedrooms}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="water-outline" size={16} />
-              <Text style={styles.metaText}>{item.numBathrooms}</Text>
-            </View>
-            <View style={styles.typeBadge}>
-              <Text style={styles.badgeText}>{item.propertyType}</Text>
-            </View>
-          </View>
-          <Text style={styles.cardPrice}>{item.rentPerMonth} ETB/mo</Text>
-          <TouchableOpacity style={styles.detailButton} onPress={() => goToDetail(item.id)}>
-            <Text style={styles.detailButtonText}>View Details</Text>
+    ({ item }: { item: Property }) => {
+      const bucket = reviewsByProperty[item.id];
+
+      return (
+        <View style={styles.card}>
+          <TouchableOpacity onPress={() => goToDetail(item.id)}>
+            {item.images[0]?.url && (
+              <Image source={{ uri: item.images[0].url }} style={styles.cardImage} resizeMode="cover" />
+            )}
           </TouchableOpacity>
+          <View style={styles.cardBody}>
+            {bucket?.loading ? (
+              <Text style={styles.reviewLoading}>Loading reviews…</Text>
+            ) : (
+              <View style={styles.reviewRow}>
+                <Ionicons name="star" size={14} color="#FACC15" />
+                <Text style={styles.reviewText}>
+                  {bucket?.averageRating != null ? bucket.averageRating.toFixed(1) : '—'}
+                </Text>
+                <Text style={styles.reviewCount}>
+                  ({bucket?.count ?? 0})
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardSubtitle}>{item.city}</Text>
+            <View style={styles.metaRow}>
+              <View style={styles.metaItem}>
+                <Ionicons name="bed-outline" size={16} />
+                <Text style={styles.metaText}>{item.numBedrooms}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Ionicons name="water-outline" size={16} />
+                <Text style={styles.metaText}>{item.numBathrooms}</Text>
+              </View>
+              <View style={styles.typeBadge}>
+                <Text style={styles.badgeText}>{item.propertyType}</Text>
+              </View>
+            </View>
+            <Text style={styles.cardPrice}>{item.rentPerMonth} ETB/mo</Text>
+            <TouchableOpacity style={styles.detailButton} onPress={() => goToDetail(item.id)}>
+              <Text style={styles.detailButtonText}>View Details</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    ),
-    [goToDetail]
+      );
+    },
+    [goToDetail, reviewsByProperty]
   );
 
   const ListHeader = useMemo(
@@ -201,5 +255,8 @@ const styles = StyleSheet.create({
   skeletonImage: { height: 150, backgroundColor: '#ddd', borderRadius: 8, marginBottom: 10 },
   skeletonLine: { height: 14, backgroundColor: '#ddd', borderRadius: 6, marginBottom: 6 },
   skeletonLineShort: { height: 14, width: '60%', backgroundColor: '#ddd', borderRadius: 6 },
+  reviewRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  reviewText: { marginLeft: 4, fontSize: 12, fontWeight: '500' },
+  reviewCount: { marginLeft: 4, fontSize: 12, color: '#666' },
+  reviewLoading: { fontSize: 12, color: '#888', marginBottom: 6 },
 });
- 

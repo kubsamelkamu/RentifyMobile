@@ -224,9 +224,10 @@ export default function BookingScreen() {
         loadingMore ? <ActivityIndicator size="small" color="#0284C7" /> : null
       }
       ListEmptyComponent={
-        <View style={styles.center}>
-          <Text>No bookings found.</Text>
-        </View>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>🏡</Text>
+            <Text style={styles.emptyTitle}>You have no Booking yet.</Text>
+          </View>
       }
     />
   );
@@ -294,4 +295,7 @@ const styles = StyleSheet.create({
   cancelButton: { backgroundColor: "#ef4444" },
   confirmButton: { backgroundColor: "#10b981" },
   rejectButton: { backgroundColor: "#f59e0b" },
+  emptyContainer: { justifyContent: 'center', alignItems: 'center', padding: 20 },
+  emptyEmoji: { fontSize: 48, marginBottom: 16 },
+  emptyTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8 },
 });

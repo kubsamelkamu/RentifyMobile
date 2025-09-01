@@ -1,9 +1,20 @@
 import { io, Socket } from 'socket.io-client';
 import Constants from 'expo-constants';
+import { Review } from '../api/review';
+import { Property } from '../api/properties';
 
 const SOCKET_URL = Constants.expoConfig!.extra!.API_URL as string;
 
 export interface ServerToClientEvents {
+
+  'admin:newReview': (review: Review) => void;
+  'admin:updateReview': (review: Review) => void;
+  'admin:deleteReview': (payload: { propertyId: string; tenantId: string }) => void;
+
+  'listing:pending': (payload: Property) => void;
+  'listing:approved': (payload: Property) => void;
+  'listing:rejected':(payload:Property) =>void;
+
 
   newBooking: (booking: any) => void;
   bookingStatusUpdate: (booking: any) => void;

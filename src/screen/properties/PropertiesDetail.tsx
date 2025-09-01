@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import {View,Text,ActivityIndicator,Image,ScrollView,StyleSheet,TouchableOpacity,Alert,SafeAreaView,}from 'react-native';
+import {
+  View, Text, ActivityIndicator, Image, ScrollView,
+  StyleSheet, TouchableOpacity, Alert, SafeAreaView,
+} from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,14 +13,16 @@ import { createBooking } from '../../store/slices/bookingSlice';
 import { FontAwesome5, MaterialIcons, Entypo } from '@expo/vector-icons';
 import type { TenantStackParamList } from '../../navigation/TenantTabNavigator';
 
+// Import the review component
+import PropertiesReview from './propertiesReview';
+
 type PropertyDetailRouteProp = RouteProp<TenantStackParamList, 'PropertyDetail'>;
 
 export default function PropertyDetailScreen() {
-
   const { id } = useRoute<PropertyDetailRouteProp>().params;
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
-  const { token, role, user } = useSelector((state: RootState) => state.auth);
+  const { token, role } = useSelector((state: RootState) => state.auth);
 
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,9 +112,9 @@ export default function PropertyDetailScreen() {
 
   const handleOpenChat = () => {
     if (property?.id && property.landlord?.id) {
-      navigation.navigate('PropertyChat', { 
-        propertyId: property.id, 
-        landlordId: property.landlord.id 
+      navigation.navigate('PropertyChat', {
+        propertyId: property.id,
+        landlordId: property.landlord.id,
       });
     } else {
       Alert.alert('Chat unavailable', 'Landlord info not found.');
@@ -122,12 +127,11 @@ export default function PropertyDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Property Image */}
         {property.images?.[0]?.url && <Image source={{ uri: property.images[0].url }} style={styles.image} />}
-        
+
+        {/* Title & Type */}
         <View style={styles.headerRow}>
           <Text style={styles.title}>{property.title}</Text>
           <View style={styles.typeBadge}>
@@ -136,6 +140,7 @@ export default function PropertyDetailScreen() {
         </View>
         <Text style={styles.city}>{property.city}</Text>
 
+        {/* Icons */}
         <View style={styles.iconRow}>
           <View style={styles.iconItem}>
             <FontAwesome5 name="bed" size={18} color="#4B5563" />
@@ -147,19 +152,16 @@ export default function PropertyDetailScreen() {
           </View>
         </View>
 
+        {/* Price */}
         <Text style={styles.price}>Rent: {property.rentPerMonth} ETB/month</Text>
+
+        {/* Booking Section */}
         <View style={styles.bookingSection}>
           <Text style={styles.sectionTitle}>Select Dates</Text>
           <Text style={styles.summaryText}>{nights > 0 ? `${nights} night${nights > 1 ? 's' : ''}` : 'Pick dates'}</Text>
-
-          <TouchableOpacity 
-            style={styles.dateButton} 
-            onPress={() => setShowStartPicker(true)} 
-            disabled={submitting}
-          >
-            <Text style={styles.dateButtonText}>
-              {startDate ? `Start: ${startDate.toDateString()}` : 'Select Start Date'}
-            </Text>
+          {/* Start Date */}
+          <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartPicker(true)} disabled={submitting}>
+            <Text style={styles.dateButtonText}>{startDate ? `Start: ${startDate.toDateString()}` : 'Select Start Date'}</Text>
           </TouchableOpacity>
           {showStartPicker && (
             <DateTimePicker
@@ -167,24 +169,19 @@ export default function PropertyDetailScreen() {
               mode="date"
               display="default"
               minimumDate={new Date()}
-              onChange={(e, d) => { 
-                setShowStartPicker(false); 
-                if(d) {
-                  setStartDate(d); 
-                  if(endDate && d > endDate) setEndDate(null);
-                } 
+              onChange={(e, d) => {
+                setShowStartPicker(false);
+                if (d) {
+                  setStartDate(d);
+                  if (endDate && d > endDate) setEndDate(null);
+                }
               }}
             />
           )}
 
-          <TouchableOpacity
-            style={[styles.dateButton, !startDate && styles.disabledBtn]}
-            onPress={() => setShowEndPicker(true)}
-            disabled={!startDate || submitting}
-          >
-            <Text style={[styles.dateButtonText, !startDate && { color: '#999' }]}>
-              {endDate ? `End: ${endDate.toDateString()}` : startDate ? 'Select End Date' : 'Select Start Date First'}
-            </Text>
+          {/* End Date */}
+          <TouchableOpacity style={[styles.dateButton, !startDate && styles.disabledBtn]} onPress={() => setShowEndPicker(true)} disabled={!startDate || submitting}>
+            <Text style={[styles.dateButtonText, !startDate && { color: '#999' }]}>{endDate ? `End: ${endDate.toDateString()}` : startDate ? 'Select End Date' : 'Select Start Date First'}</Text>
           </TouchableOpacity>
           {showEndPicker && (
             <DateTimePicker
@@ -192,24 +189,19 @@ export default function PropertyDetailScreen() {
               mode="date"
               display="default"
               minimumDate={startDate || new Date()}
-              onChange={(e, d) => { 
-                setShowEndPicker(false); 
-                if(d) setEndDate(d); 
+              onChange={(e, d) => {
+                setShowEndPicker(false);
+                if (d) setEndDate(d);
               }}
             />
           )}
 
-          <TouchableOpacity
-            style={[styles.bookingButton, (submitting || !startDate || !endDate) && styles.bookingButtonDisabled]}
-            onPress={handleRequestBooking}
-            disabled={submitting || !startDate || !endDate}
-          >
-            <Text style={styles.bookingButtonText}>
-              {submitting ? 'Sending…' : 'Request Booking'}
-            </Text>
+          <TouchableOpacity style={[styles.bookingButton, (submitting || !startDate || !endDate) && styles.bookingButtonDisabled]} onPress={handleRequestBooking} disabled={submitting || !startDate || !endDate}>
+            <Text style={styles.bookingButtonText}>{submitting ? 'Sending…' : 'Request Booking'}</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Description & Amenities */}
         <Text style={styles.sectionTitle}>Description</Text>
         <Text style={styles.description}>{property.description || 'No description provided.'}</Text>
         {property.amenities?.length > 0 && (
@@ -226,6 +218,7 @@ export default function PropertyDetailScreen() {
           </>
         )}
 
+        {/* Owner Info */}
         <Text style={styles.sectionTitle}>Owner Info</Text>
         <View style={styles.ownerInfo}>
           <MaterialIcons name="person" size={20} color="#0284C7" />
@@ -236,16 +229,15 @@ export default function PropertyDetailScreen() {
           <Text style={styles.ownerText}>{property.landlord?.email || 'N/A'}</Text>
         </View>
 
+        {/* Chat Button */}
         {property?.landlord?.id && token && role && (
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={handleOpenChat}
-          >
-            <Text style={styles.chatButtonText}>
-              {role.toLowerCase() === 'tenant' ? 'Chat with Landlord' : 'View Property Chat'}
-            </Text>
+          <TouchableOpacity style={styles.chatButton} onPress={handleOpenChat}>
+            <Text style={styles.chatButtonText}>{role.toLowerCase() === 'tenant' ? 'Chat with Landlord' : 'View Property Chat'}</Text>
           </TouchableOpacity>
         )}
+
+        {/* === Reviews Section === */}
+        <PropertiesReview route={{ params: { propertyId: property.id } }} />
       </ScrollView>
     </SafeAreaView>
   );
