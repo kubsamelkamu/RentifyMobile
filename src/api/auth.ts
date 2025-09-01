@@ -11,6 +11,8 @@ export interface User {
   email: string;
   role: 'TENANT' | 'LANDLORD' | 'ADMIN' | 'SUPER_ADMIN';
   isVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 export interface AuthResponse {
   token: string;
@@ -79,4 +81,31 @@ export function resendOtp(email: string) {
 
 export function verifyResetOtp(email: string, otp: string) {
   return axios.post<{ resetToken: string }>(`${API_URL}/api/auth/verify-reset-otp`, { email, otp });
+}
+
+
+export async function getProfile() {
+  const token = await SecureStore.getItemAsync('token');
+  if (!token) throw new Error('No token found, please log in again.');
+  return axios.get<User>(`${API_URL}/api/users/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateProfile(formData: FormData) {
+  const token = await SecureStore.getItemAsync('token');
+  if (!token) throw new Error('No token found, please log in again.');
+  const res = await fetch(`${API_URL}/api/users/me`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData as any,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || `Update failed (${res.status})`);
+  }
+
+  const data = await res.json();
+  return { data } as any;
 }
