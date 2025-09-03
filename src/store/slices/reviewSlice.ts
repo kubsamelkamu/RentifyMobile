@@ -48,7 +48,6 @@ export const fetchPropertyReviews = createAsyncThunk<
 );
 
 
-// Upsert review (with token from state)
 export const upsertReview = createAsyncThunk<
   Review,
   { propertyId: string; rating: number; title: string; comment: string },
@@ -67,7 +66,7 @@ export const upsertReview = createAsyncThunk<
   }
 );
 
-// Delete review
+
 export const deleteReview = createAsyncThunk<
   { success: boolean; propertyId: string },
   string,
