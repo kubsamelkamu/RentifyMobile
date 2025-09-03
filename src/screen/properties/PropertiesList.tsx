@@ -1,11 +1,21 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { View,Text,FlatList,RefreshControl,ActivityIndicator,TouchableOpacity,Image,StyleSheet,} from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootStackNavigator';
-import { fetchPropertiesThunk } from '../../store/slices/propertiesSlice';
+import { fetchPropertiesThunk, likeProperty, unlikeProperty } from '../../store/slices/propertiesSlice';
 import { logout } from '../../store/slices/authSlice';
 import type { AppDispatch, RootState } from '../../store/store';
 import type { Property } from '../../api/properties';
@@ -27,10 +37,9 @@ const SkeletonCard = () => (
 type StackNavProp = NativeStackNavigationProp<RootStackParamList, 'PropertyDetail'>;
 
 export default function PropertyListScreen({ isInTab = false }: Props) {
-
   const dispatch = useDispatch<AppDispatch>();
-  const { items, status, total, limit } = useSelector((state: RootState) => state.properties)!;
-  const { token } = useSelector((state: RootState) => state.auth);
+  const { items, status, total, limit } = useSelector((state: RootState) => state.properties);
+  const { token, user } = useSelector((state: RootState) => state.auth);
   const { reviewsByProperty } = useSelector((s: RootState) => s.review);
   const requested = useRef<Set<string>>(new Set());
   const navigation = useNavigation<StackNavProp>();
@@ -38,6 +47,7 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
   const [filters, setFilters] = useState<PropertyFilters>({});
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [likingIds, setLikingIds] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
@@ -97,10 +107,35 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
     };
   }, [token, dispatch, filters, page, limit]);
 
+  const toggleLike = (propId: string, isLiked: boolean) => {
+    if (!user?.id) {
+      Alert.alert('Login Required', 'You must be logged in to like properties.');
+      return;
+    }
+    
+    if (likingIds.has(propId)) return;
+
+    setLikingIds(prev => new Set(prev).add(propId));
+
+    const action = isLiked ? unlikeProperty(propId) : likeProperty(propId);
+    dispatch(action)
+      .unwrap()
+      .catch(error => {
+        Alert.alert('Error', error || 'Failed to update like status');
+      })
+      .finally(() => {
+        setLikingIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(propId);
+          return newSet;
+        });
+      });
+  };
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPage(1);
-    requested.current.clear(); 
+    requested.current.clear();
     dispatch(fetchPropertiesThunk({ ...filters, page: 1, limit })).finally(() => setRefreshing(false));
   }, [dispatch, filters, limit]);
 
@@ -113,7 +148,7 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
 
   const goToDetail = useCallback(
     (id: string) => {
-      navigation.navigate('PropertyDetail', { id }); 
+      navigation.navigate('PropertyDetail', { id });
     },
     [navigation]
   );
@@ -121,38 +156,72 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
   const renderItem = useCallback(
     ({ item }: { item: Property }) => {
       const bucket = reviewsByProperty[item.id];
+      const isLiking = likingIds.has(item.id);
 
       return (
         <View style={styles.card}>
-          <TouchableOpacity onPress={() => goToDetail(item.id)}>
-            {item.images[0]?.url && (
-              <Image source={{ uri: item.images[0].url }} style={styles.cardImage} resizeMode="cover" />
-            )}
-          </TouchableOpacity>
+          <View style={styles.imageContainer}>
+            <TouchableOpacity onPress={() => goToDetail(item.id)}>
+              {item.images[0]?.url && (
+                <Image source={{ uri: item.images[0].url }} style={styles.cardImage} resizeMode="cover" />
+              )}
+            </TouchableOpacity>
+          </View>
+          
           <View style={styles.cardBody}>
-            {bucket?.loading ? (
-              <Text style={styles.reviewLoading}>Loading reviews…</Text>
-            ) : (
-              <View style={styles.reviewRow}>
-                <Ionicons name="star" size={14} color="#FACC15" />
-                <Text style={styles.reviewText}>
-                  {bucket?.averageRating != null ? bucket.averageRating.toFixed(1) : '—'}
-                </Text>
-                <Text style={styles.reviewCount}>
-                  ({bucket?.count ?? 0})
-                </Text>
-              </View>
-            )}
+            {/* Combined rating and like row */}
+            <View style={styles.ratingLikeRow}>
+              {/* Rating Section */}
+              {bucket?.loading ? (
+                <Text style={styles.reviewLoading}>Loading reviews…</Text>
+              ) : (
+                <View style={styles.reviewRow}>
+                  <Ionicons name="star" size={14} color="#FACC15" />
+                  <Text style={styles.reviewText}>
+                    {bucket?.averageRating != null ? bucket.averageRating.toFixed(1) : '—'}
+                  </Text>
+                  <Text style={styles.reviewCount}>
+                    ({bucket?.count ?? 0})
+                  </Text>
+                </View>
+              )}
+
+              {/* Like Button */}
+              <TouchableOpacity
+                style={styles.likeButton}
+                onPress={() => toggleLike(item.id, item.likedByUser || false)}
+                disabled={isLiking || !user?.id}
+              >
+                {isLiking ? (
+                  <ActivityIndicator size="small" color="#FF3B30" />
+                ) : (
+                  <View style={styles.likeButtonContent}>
+                    <Ionicons
+                      name={item.likedByUser ? "heart" : "heart-outline"}
+                      size={20}
+                      color={item.likedByUser ? "#FF3B30" : "#666"}
+                    />
+                    <Text style={[
+                      styles.likeCount,
+                      { color: item.likedByUser ? "#FF3B30" : "#666" }
+                    ]}>
+                      {item.likesCount || 0}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+            {/* End of combined row */}
 
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardSubtitle}>{item.city}</Text>
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <Ionicons name="bed-outline" size={16} />
+                <Ionicons name="bed-outline" size={16} color="#666" />
                 <Text style={styles.metaText}>{item.numBedrooms}</Text>
               </View>
               <View style={styles.metaItem}>
-                <Ionicons name="water-outline" size={16} />
+                <Ionicons name="water-outline" size={16} color="#666" />
                 <Text style={styles.metaText}>{item.numBathrooms}</Text>
               </View>
               <View style={styles.typeBadge}>
@@ -160,6 +229,7 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
               </View>
             </View>
             <Text style={styles.cardPrice}>{item.rentPerMonth} ETB/mo</Text>
+            
             <TouchableOpacity style={styles.detailButton} onPress={() => goToDetail(item.id)}>
               <Text style={styles.detailButtonText}>View Details</Text>
             </TouchableOpacity>
@@ -167,7 +237,7 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
         </View>
       );
     },
-    [goToDetail, reviewsByProperty]
+    [goToDetail, reviewsByProperty, likingIds, user]
   );
 
   const ListHeader = useMemo(
@@ -222,7 +292,10 @@ export default function PropertyListScreen({ isInTab = false }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { paddingBottom: 20, backgroundColor: '#FFFFFF' },
+  container: { 
+    paddingBottom: 20, 
+    backgroundColor: '#FFFFFF' 
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -235,28 +308,148 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  cardImage: { width: '100%', height: 150 },
-  cardBody: { padding: 12 },
-  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: '#555', marginBottom: 8 },
-  cardPrice: { fontSize: 14, fontWeight: '500', color: '#333', marginTop: 8 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
-  metaText: { marginLeft: 4, fontSize: 14, color: '#555' },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#E0F2FE', borderRadius: 12 },
-  badgeText: { fontSize: 12, color: '#0284C7' },
-  detailButton: { marginTop: 12, backgroundColor: '#0284C7', paddingVertical: 8, borderRadius: 5, alignItems: 'center' },
-  detailButtonText: { color: '#FFF', fontSize: 14, fontWeight: '500' },
-  emptyContainer: { justifyContent: 'center', alignItems: 'center', padding: 20 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: '#666', textAlign: 'center' },
-  skeletonCard: { padding: 15, marginHorizontal: 16, marginBottom: 16, backgroundColor: '#eee', borderRadius: 8 },
-  skeletonImage: { height: 150, backgroundColor: '#ddd', borderRadius: 8, marginBottom: 10 },
-  skeletonLine: { height: 14, backgroundColor: '#ddd', borderRadius: 6, marginBottom: 6 },
-  skeletonLineShort: { height: 14, width: '60%', backgroundColor: '#ddd', borderRadius: 6 },
-  reviewRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  reviewText: { marginLeft: 4, fontSize: 12, fontWeight: '500' },
-  reviewCount: { marginLeft: 4, fontSize: 12, color: '#666' },
-  reviewLoading: { fontSize: 12, color: '#888', marginBottom: 6 },
+  imageContainer: {
+    position: 'relative',
+  },
+  cardImage: { 
+    width: '100%', 
+    height: 150 
+  },
+  cardBody: { 
+    padding: 12 
+  },
+  ratingLikeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6
+  },
+  reviewRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  reviewText: { 
+    marginLeft: 4, 
+    fontSize: 12, 
+    fontWeight: '500' 
+  },
+  reviewCount: { 
+    marginLeft: 4, 
+    fontSize: 12, 
+    color: '#666' 
+  },
+  reviewLoading: { 
+    fontSize: 12, 
+    color: '#888', 
+    marginBottom: 6 
+  },
+  likeButton: {
+    padding: 4,
+  },
+  likeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likeCount: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cardTitle: { 
+    fontSize: 16, 
+    fontWeight: '600', 
+    marginBottom: 4 
+  },
+  cardSubtitle: { 
+    fontSize: 14, 
+    color: '#555', 
+    marginBottom: 8 
+  },
+  cardPrice: { 
+    fontSize: 14, 
+    fontWeight: '500', 
+    color: '#333', 
+    marginTop: 8 
+  },
+  metaRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 8 
+  },
+  metaItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginRight: 16 
+  },
+  metaText: { 
+    marginLeft: 4, 
+    fontSize: 14, 
+    color: '#555' 
+  },
+  typeBadge: { 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    backgroundColor: '#E0F2FE', 
+    borderRadius: 12 
+  },
+  badgeText: { 
+    fontSize: 12, 
+    color: '#0284C7' 
+  },
+  detailButton: { 
+    backgroundColor: '#0284C7', 
+    paddingVertical: 8, 
+    borderRadius: 5, 
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  detailButtonText: { 
+    color: '#FFF', 
+    fontSize: 14, 
+    fontWeight: '500' 
+  },
+  emptyContainer: { 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20 
+  },
+  emptyEmoji: { 
+    fontSize: 48, 
+    marginBottom: 16 
+  },
+  emptyTitle: { 
+    fontSize: 20, 
+    fontWeight: '600', 
+    marginBottom: 8 
+  },
+  emptySubtitle: { 
+    fontSize: 14, 
+    color: '#666', 
+    textAlign: 'center' 
+  },
+  skeletonCard: { 
+    padding: 15, 
+    marginHorizontal: 16, 
+    marginBottom: 16, 
+    backgroundColor: '#eee', 
+    borderRadius: 8 
+  },
+  skeletonImage: { 
+    height: 150, 
+    backgroundColor: '#ddd', 
+    borderRadius: 8, 
+    marginBottom: 10 
+  },
+  skeletonLine: { 
+    height: 14, 
+    backgroundColor: '#ddd', 
+    borderRadius: 6, 
+    marginBottom: 6 
+  },
+  skeletonLineShort: { 
+    height: 14, 
+    width: '60%', 
+    backgroundColor: '#ddd', 
+    borderRadius: 6 
+  },
 });

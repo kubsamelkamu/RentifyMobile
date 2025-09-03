@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {View,Text,StyleSheet,FlatList,TextInput,TouchableOpacity,SafeAreaView,ActivityIndicator,KeyboardAvoidingView,Platform,Alert,} from "react-native";
+import {View,Text,StyleSheet,FlatList,TextInput,TouchableOpacity,SafeAreaView,ActivityIndicator,KeyboardAvoidingView,Platform,Alert,ScrollView,} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../../store/store";
 import {fetchPropertyReviews,upsertReview,deleteReview,} from "../../store/slices/reviewSlice";
@@ -9,17 +9,17 @@ const PropertiesReview = ({ route }: any) => {
 
   const { propertyId } = route.params;
   const dispatch = useDispatch<AppDispatch>();
-  const reviewBucket = useSelector((state: RootState) => state.review.reviewsByProperty[propertyId]);
+  const reviewBucket = useSelector((state: RootState) => state.review.reviewsByProperty[propertyId])!;
   const auth = useSelector((state: RootState) => state.auth);
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchPropertyReviews({ propertyId, page: 1, limit: 10 }));
   }, [dispatch, propertyId]);
 
- 
   useEffect(() => {
     const token = auth?.token;
     if (!token) return;
@@ -46,15 +46,33 @@ const PropertiesReview = ({ route }: any) => {
 
   const handleSubmit = () => {
     if (!title.trim() || !comment.trim() || rating === 0) return;
-
+    
+    setSubmitting(true);
+    
     dispatch(upsertReview({ propertyId, rating, title, comment }))
       .unwrap()
       .then(() => {
         setRating(0);
         setTitle("");
         setComment("");
+        Alert.alert("Success", "Your review has been submitted successfully!");
       })
-      .catch((err) => console.error("upsertReview failed", err));
+      .catch((err) => {        
+        if (err.message && err.message.includes("booking")) {
+          Alert.alert(
+            "Booking Required", 
+            "You must have a confirmed booking for this property to leave a review."
+          );
+        } else {
+           Alert.alert(
+            "Booking Required", 
+            "You must have a confirmed booking for this property to leave a review."
+          );
+        }
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
   };
 
   const handleDelete = (reviewId: string) => {
@@ -64,9 +82,18 @@ const PropertiesReview = ({ route }: any) => {
         text: "Delete",
         style: "destructive",
         onPress: () => {
-          dispatch(deleteReview(propertyId))
+          dispatch(deleteReview(reviewId))
             .unwrap()
-            .catch((err) => console.error("deleteReview failed", err));
+            .then(() => {
+              Alert.alert("Success", "Your review has been deleted.");
+            })
+            .catch((err) => {
+              console.error("Delete review failed", err);
+              Alert.alert(
+                "Error", 
+                err.message || "Failed to delete review. Please try again later."
+              );
+            });
         },
       },
     ]);
@@ -75,7 +102,11 @@ const PropertiesReview = ({ route }: any) => {
   const Star = ({ filled, size = 18, onPress }: any) => (
     <TouchableOpacity onPress={onPress} disabled={!onPress}>
       <Text
-        style={[styles.star, { fontSize: size }, filled ? styles.filledStar : styles.emptyStar]}
+        style={[
+          styles.star,
+          { fontSize: size },
+          filled ? styles.filledStar : styles.emptyStar,
+        ]}
       >
         {filled ? "★" : "☆"}
       </Text>
@@ -94,7 +125,10 @@ const PropertiesReview = ({ route }: any) => {
       <Text style={styles.comment}>{item.comment}</Text>
 
       {item.tenantId === auth.user?.id && (
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={() => handleDelete(item.id)}
+        >
           <Text style={styles.deleteText}>Delete</Text>
         </TouchableOpacity>
       )}
@@ -107,61 +141,80 @@ const PropertiesReview = ({ route }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={90}
       >
-        <Text style={styles.header}>Property Reviews</Text>
-        {loading ? (
-          <ActivityIndicator size="large" color="#000" />
-        ) : (
-          <FlatList
-            data={reviews}
-            scrollEnabled={false}
-            keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
-            renderItem={renderReview}
-            contentContainerStyle={styles.list}
-            ListEmptyComponent={
-              <Text style={{ textAlign: "center", marginTop: 20 }}>
-                No reviews yet. Be the first to write one!
-              </Text>
-            }
-          />
-        )}
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.header}>Property Reviews</Text>
+          
+          {loading ? (
+            <ActivityIndicator size="large" color="#000" style={styles.loader} />
+          ) : (
+            <FlatList
+              data={reviews}
+              scrollEnabled={false}
+              keyExtractor={(item, index) =>
+                item.id ? item.id.toString() : index.toString()
+              }
+              renderItem={renderReview}
+              contentContainerStyle={styles.list}
+              ListEmptyComponent={
+                <Text style={styles.noReviewsText}>
+                  No reviews yet. Be the first to write one!
+                </Text>
+              }
+            />
+          )}
 
-        <View style={styles.inputCard}>
-          <Text style={styles.label}>Your Rating</Text>
-          <View style={styles.starsRow}>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <Star key={index} filled={index < rating} size={24} onPress={() => setRating(index + 1)} />
-            ))}
+          <View style={styles.inputCard}>
+            <Text style={styles.label}>Your Rating</Text>
+            <View style={styles.starsRow}>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star
+                  key={index}
+                  filled={index < rating}
+                  size={24}
+                  onPress={() => setRating(index + 1)}
+                />
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.textInput}
+              placeholder="Title (e.g., Great place!)"
+              value={title}
+              onChangeText={setTitle}
+            />
+
+            <TextInput
+              style={[styles.textInput, styles.commentInput]}
+              placeholder="Write your review..."
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              numberOfLines={4}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.submitBtn,
+                (!title.trim() || !comment.trim() || rating === 0 || submitting) &&
+                  styles.disabledBtn,
+              ]}
+              onPress={handleSubmit}
+              disabled={
+                !title.trim() || !comment.trim() || rating === 0 || submitting
+              }
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.submitText}>Submit Review</Text>
+              )}
+            </TouchableOpacity>
           </View>
-
-          <TextInput
-            style={styles.textInput}
-            placeholder="Title (e.g., Great place!)"
-            value={title}
-            onChangeText={setTitle}
-          />
-
-          <TextInput
-            style={styles.textInput}
-            placeholder="Write your review..."
-            value={comment}
-            onChangeText={setComment}
-            multiline
-          />
-
-          <TouchableOpacity
-            style={[
-              styles.submitBtn,
-              (!title.trim() || !comment.trim() || rating === 0) && styles.disabledBtn,
-            ]}
-            onPress={handleSubmit}
-            disabled={!title.trim() || !comment.trim() || rating === 0}
-          >
-            <Text style={styles.submitText}>Submit Review</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -172,55 +225,98 @@ export default PropertiesReview;
 const styles = StyleSheet.create({
 
   container: { flex: 1, backgroundColor: "#F9F9F9" },
-  header: { fontSize: 20, fontWeight: "bold", margin: 16, textAlign: "center" },
+  scrollContainer: { flexGrow: 1 },
+  header: {
+    fontSize: 22,
+    fontWeight: "bold",
+    margin: 16,
+    textAlign: "center",
+    color: "#333",
+  },
+  loader: { marginVertical: 20 },
   list: { paddingHorizontal: 16 },
   reviewCard: {
     backgroundColor: "#FFF",
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 3,
   },
-  reviewer: { fontWeight: "bold", marginBottom: 4 },
-  starsRow: { flexDirection: "row", marginVertical: 4 },
-  star: { marginRight: 4 },
+  reviewer: {
+    fontWeight: "bold",
+    marginBottom: 6,
+    fontSize: 16,
+    color: "#444",
+  },
+  starsRow: { flexDirection: "row", marginVertical: 6 },
+  star: { marginRight: 6 },
   filledStar: { color: "#FFD700" },
   emptyStar: { color: "#C0C0C0" },
-  title: { fontSize: 16, fontWeight: "600", marginTop: 4 },
-  comment: { fontSize: 14, color: "#444", marginTop: 4 },
-  deleteBtn: {
+  title: {
+    fontSize: 16,
+    fontWeight: "600",
     marginTop: 8,
+    marginBottom: 4,
+    color: "#333",
+  },
+  comment: {
+    fontSize: 14,
+    color: "#555",
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  deleteBtn: {
+    marginTop: 12,
     backgroundColor: "#FF4D4F",
-    padding: 6,
+    padding: 8,
     borderRadius: 6,
     alignSelf: "flex-start",
   },
-  deleteText: { color: "#FFF", fontWeight: "bold" },
+  deleteText: { color: "#FFF", fontWeight: "bold", fontSize: 12 },
   inputCard: {
     backgroundColor: "#FFF",
-    padding: 16,
+    padding: 20,
     borderTopWidth: 1,
     borderColor: "#E0E0E0",
+    marginTop: 10,
   },
-  label: { fontWeight: "bold", marginBottom: 8 },
+  label: {
+    fontWeight: "bold",
+    marginBottom: 10,
+    fontSize: 16,
+    color: "#333",
+  },
   textInput: {
     backgroundColor: "#F2F2F2",
     borderRadius: 8,
-    padding: 10,
-    minHeight: 40,
+    padding: 12,
     marginVertical: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  commentInput: {
+    minHeight: 100,
     textAlignVertical: "top",
   },
   submitBtn: {
-    backgroundColor: "#007BFF",
-    paddingVertical: 12,
+    backgroundColor: "#0284C7",
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
+    marginTop: 16,
   },
   disabledBtn: { backgroundColor: "#C0C0C0" },
-  submitText: { color: "#FFF", fontWeight: "bold" },
+  submitText: { color: "#FFF", fontWeight: "bold", fontSize: 16 },
+  noReviewsText: {
+    textAlign: "center",
+    marginTop: 20,
+    fontSize: 16,
+    color: "#666",
+    fontStyle: "italic",
+  },
 });
