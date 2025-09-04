@@ -1,30 +1,39 @@
 {
   "expo": {
-    "name": "rentify-mobile",
-    "slug": "rentify-mobile",
+    "name": "Rentify",
+    "slug": "rentify",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/rentify-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/rentify-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rentify.app",
+      "buildNumber": "1.0.0"
     },
+
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/rentify-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.rentify.app",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
+
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/rentify-icon.png"
     },
+
     "extra": {
       "API_URL": "https://hrp-server-api.onrender.com",
       "SOCKET_URL": "https://hrp-server-api.onrender.com"
