@@ -69,7 +69,7 @@ export default function RootStackNavigator() {
       <Stack.Screen
         name="PropertyChat"
         component={PropertyChatScreen}
-        options={{ headerTitle: "Property Chat" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Booking"

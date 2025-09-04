@@ -5,6 +5,7 @@ import profileReducer from './slices/profileSlice';
 import propertiesReducer from './slices/propertiesSlice';
 import chatReducer from './slices/chatslice'
 import reviewReducer from './slices/reviewSlice';
+import paymentReducer from './slices/paymentslice'
 
 const rootReducer = combineReducers(
     { auth: authReducer ,
@@ -12,7 +13,8 @@ const rootReducer = combineReducers(
       profile: profileReducer,
       properties: propertiesReducer,
       chat: chatReducer,
-      review: reviewReducer
+      review: reviewReducer,
+      payment:paymentReducer
     }
 );
 export type RootState = ReturnType<typeof rootReducer>;

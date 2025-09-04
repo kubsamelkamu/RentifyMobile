@@ -23,6 +23,12 @@ export interface Booking {
     images: { url: string }[];
     image?: string; 
   };
+    payment?: {
+    status: "PENDING" | "SUCCESS" | "FAILED";
+    amount?: number;
+    currency?: string;
+    transactionId?: string;
+  };
 }
 
 

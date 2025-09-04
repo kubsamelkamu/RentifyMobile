@@ -1,3 +1,4 @@
+// chatslice.ts
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import socket from '../../utils/socket';
 
@@ -52,8 +53,20 @@ const chatSlice = createSlice({
     addMessage: (state, action: PayloadAction<Message>) => {
       const msg = action.payload;
       if (!state.messages[msg.propertyId]) state.messages[msg.propertyId] = [];
-      const exists = state.messages[msg.propertyId].some((m) => m.id === msg.id);
-      if (!exists) state.messages[msg.propertyId].push(msg);
+      
+      // Check if message already exists
+      const existingIndex = state.messages[msg.propertyId].findIndex(m => m.id === msg.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing message
+        state.messages[msg.propertyId][existingIndex] = msg;
+      } else {
+        // Add new message and sort by timestamp
+        state.messages[msg.propertyId].push(msg);
+        state.messages[msg.propertyId].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
     },
     editMessage: (
       state,
@@ -80,16 +93,26 @@ const chatSlice = createSlice({
     setTyping: (state, action: PayloadAction<{ propertyId: string; typing: TypingStatus }>) => {
       const { propertyId, typing } = action.payload;
       if (!state.typing[propertyId]) state.typing[propertyId] = [];
-      const idx = state.typing[propertyId].findIndex((t) => t.userId === typing.userId);
-      if (idx > -1) state.typing[propertyId][idx] = typing;
-      else state.typing[propertyId].push(typing);
+      
+      // Remove existing typing status for this user
+      state.typing[propertyId] = state.typing[propertyId].filter(t => t.userId !== typing.userId);
+      
+      // Add new typing status if user is typing
+      if (typing.isTyping) {
+        state.typing[propertyId].push(typing);
+      }
     },
     setPresence: (state, action: PayloadAction<{ userId: string; status: 'online' | 'offline' }>) => {
       state.presence[action.payload.userId] = action.payload.status;
     },
     setMessages: (state, action: PayloadAction<{ propertyId: string; messages: Message[] }>) => {
-      const uniqueMessages = Array.from(new Map(action.payload.messages.map(m => [m.id, m])).values());
-      state.messages[action.payload.propertyId] = uniqueMessages;
+      const { propertyId, messages } = action.payload;
+      // Remove duplicates and sort by timestamp
+      const uniqueMessages = Array.from(
+        new Map(messages.map(m => [m.id, m])).values()
+      ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      
+      state.messages[propertyId] = uniqueMessages;
     },
     clearChat: () => initialState,
   },
@@ -102,8 +125,20 @@ const chatSlice = createSlice({
       state.loading = false;
       const msg = action.payload;
       if (!state.messages[msg.propertyId]) state.messages[msg.propertyId] = [];
-      const exists = state.messages[msg.propertyId].some((m) => m.id === msg.id);
-      if (!exists) state.messages[msg.propertyId].push(msg);
+      
+      // Check if message already exists
+      const existingIndex = state.messages[msg.propertyId].findIndex(m => m.id === msg.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing message
+        state.messages[msg.propertyId][existingIndex] = msg;
+      } else {
+        // Add new message and sort by timestamp
+        state.messages[msg.propertyId].push(msg);
+        state.messages[msg.propertyId].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
     });
     builder.addCase(sendMessage.rejected, (state, action) => {
       state.loading = false;
