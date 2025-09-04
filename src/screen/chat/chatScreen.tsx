@@ -1,10 +1,22 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import {View,Text,FlatList,TextInput,TouchableOpacity,StyleSheet,KeyboardAvoidingView,Platform,Alert,SafeAreaView,StatusBar,Modal,TouchableWithoutFeedback,Dimensions,} from 'react-native';
+import {
+  View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, 
+  KeyboardAvoidingView, Platform, Alert, SafeAreaView, StatusBar, 
+  Modal, TouchableWithoutFeedback, Dimensions
+} from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store/store';
 import socket from '../../utils/socket';
-import {addMessage,editMessage as editMessageAction,deleteMessage as deleteMessageAction,setTyping,setPresence,sendMessage,Message} from '../../store/slices/chatslice';
+import {
+  addMessage,
+  editMessage as editMessageAction,
+  deleteMessage as deleteMessageAction,
+  setTyping,
+  setPresence,
+  sendMessage,
+  Message
+} from '../../store/slices/chatslice';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import type { TenantStackParamList } from '../../navigation/TenantTabNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,13 +26,12 @@ type PropertyChatRouteProp = RouteProp<TenantStackParamList, 'PropertyChat'>;
 const { width } = Dimensions.get('window');
 
 export default function PropertyChatScreen() {
-
   const route = useRoute<PropertyChatRouteProp>();
   const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const insets = useSafeAreaInsets();
   const { propertyId, landlordId } = route.params;
-  const {  user } = useSelector((state: RootState) => state.auth);
+  const { user } = useSelector((state: RootState) => state.auth);
   const { messages, typing, presence } = useSelector((state: RootState) => state.chat);
   const propertyMessages = messages[propertyId] || [];
   const typingUsers = typing[propertyId] || [];
@@ -33,6 +44,7 @@ export default function PropertyChatScreen() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!propertyId) return;
@@ -49,17 +61,14 @@ export default function PropertyChatScreen() {
     const onMessageEdited = (updatedMsg: unknown) => {
       const message = updatedMsg as Message;
       if (message.propertyId === propertyId) {
-        dispatch(editMessageAction({
-          propertyId: message.propertyId,
-          messageId: message.id,
-          newContent: message.content
-        }));
+        dispatch(addMessage(message));
       }
     };
 
+    // FIXED: Use propertyId from component scope since socket only sends messageId
     const onMessageDeleted = (data: { messageId: string }) => {
       dispatch(deleteMessageAction({
-        propertyId,
+        propertyId, // Use propertyId from component scope
         messageId: data.messageId
       }));
     };
@@ -85,23 +94,46 @@ export default function PropertyChatScreen() {
       socket.off('messageDeleted', onMessageDeleted);
       socket.off('typingStatus', onTypingStatus);
       socket.off('presence', onPresenceUpdate);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [propertyId, dispatch]);
 
   useEffect(() => {
     if (!user?.id) return;
-    const timeout = setTimeout(() => {
-      socket.emit('typing', { propertyId, userId: user.id, isTyping });
-    }, 500);
-    return () => clearTimeout(timeout);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    if (isTyping) {
+      socket.emit('typing', { propertyId, userId: user.id, isTyping: true });
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        socket.emit('typing', { propertyId, userId: user.id, isTyping: false });
+      }, 2000);
+    } else {
+      socket.emit('typing', { propertyId, userId: user.id, isTyping: false });
+    }
+    
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
   }, [isTyping, propertyId, user?.id]);
 
   const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim()) return;
+    
     if (editingMessageId) {
       handleEditSave();
       return;
     }
+    
     try {
       await dispatch(sendMessage({ propertyId, content: newMessage })).unwrap();
       setNewMessage('');
@@ -123,11 +155,12 @@ export default function PropertyChatScreen() {
   };
 
   const handleEditSave = () => {
-    if (!editingMessageId || !editText.trim()) return;
+    if (!editingMessageId || !newMessage.trim()) return;
+    
     socket.emit('editMessage', {
       propertyId,
       messageId: editingMessageId,
-      newContent: editText
+      newContent: newMessage
     }, (res: unknown) => {
       const response = res as { success: boolean; error?: string };
       if (response.success) {
@@ -148,12 +181,18 @@ export default function PropertyChatScreen() {
 
   const handleDelete = () => {
     if (!selectedMessageId) return;
-    Alert.alert('Delete Message','Are you sure?', [
+    
+    Alert.alert('Delete Message', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel', onPress: () => setShowActionModal(false) },
-      { text: 'Delete', style: 'destructive', onPress: () => {
+      { 
+        text: 'Delete', 
+        style: 'destructive', 
+        onPress: () => {
           socket.emit('deleteMessage', { propertyId, messageId: selectedMessageId }, (res: unknown) => {
             const response = res as { success: boolean; error?: string };
-            if (!response.success) Alert.alert('Error', response.error || 'Failed to delete message');
+            if (!response.success) {
+              Alert.alert('Error', response.error || 'Failed to delete message');
+            }
             setShowActionModal(false);
           });
         } 
@@ -173,6 +212,7 @@ export default function PropertyChatScreen() {
 
   const formatTime = (timestamp: any) => {
     if (!timestamp) return '';
+    
     try {
       const date = typeof timestamp === 'string' && !isNaN(Number(timestamp)) 
         ? new Date(Number(timestamp)) 
@@ -195,11 +235,25 @@ export default function PropertyChatScreen() {
     }
   };
 
-  const renderAvatar = (senderName?: string) => {
+  const getAvatarColor = (userId: string) => {
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#F9A826', 
+      '#6A0572', '#AB83A1', '#5C80BC', '#4A9C82'
+    ];
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const renderAvatar = (userId: string, senderName?: string) => {
     if (!senderName) return null;
     const firstLetter = senderName.trim().charAt(0).toUpperCase();
+    const backgroundColor = getAvatarColor(userId);
+    
     return (
-      <View style={styles.avatarCircle}>
+      <View style={[styles.avatarCircle, { backgroundColor }]}>
         <Text style={styles.avatarText}>{firstLetter}</Text>
       </View>
     );
@@ -208,11 +262,12 @@ export default function PropertyChatScreen() {
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.senderId === user?.id;
     const isEditing = editingMessageId === item.id;
-    const senderName = isMe ? 'You' : (item.senderName || (item.senderId === landlordId ? 'Landlord' : 'User'));
+    const displayName = isMe ? 'You' : (item.senderName || (item.senderId === landlordId ? 'Landlord' : 'User'));
+    const avatarName = isMe ? (user?.name || 'You') : (item.senderName || (item.senderId === landlordId ? 'Landlord' : 'User'));
 
     return (
       <View style={[styles.messageContainer, isMe ? styles.currentUser : styles.otherUser]}>
-        {!isMe && renderAvatar(senderName)}
+        {!isMe && renderAvatar(item.senderId, avatarName)}
 
         <TouchableOpacity
           onLongPress={(event) => handleMessageLongPress(item.id, event)}
@@ -220,7 +275,7 @@ export default function PropertyChatScreen() {
           activeOpacity={0.7}
         >
           <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.otherMessage, isEditing && styles.editingMessage]}>
-            {!isMe && <Text style={styles.senderName}>{senderName}</Text>}
+            {!isMe && <Text style={styles.senderName}>{displayName}</Text>}
             {item.deleted ? (
               <Text style={styles.deletedText}>This message was deleted</Text>
             ) : (
@@ -239,7 +294,7 @@ export default function PropertyChatScreen() {
           </View>
         </TouchableOpacity>
 
-        {isMe && renderAvatar(senderName)}
+        {isMe && renderAvatar(item.senderId, avatarName)}
       </View>
     );
   };
@@ -247,8 +302,15 @@ export default function PropertyChatScreen() {
   const typingIndicator = useMemo(() => {
     const othersTyping = typingUsers.filter((t) => t.userId !== user?.id && t.isTyping);
     if (othersTyping.length === 0) return null;
-    const typingNames = othersTyping.map(t => t.userId === landlordId ? 'Landlord' : 'Someone');
-    const typingText = typingNames.length === 1 ? `${typingNames[0]} is typing...` : 'Multiple people are typing...';
+    
+    const typingNames = othersTyping.map(t => 
+      t.userId === landlordId ? 'Landlord' : 'Someone'
+    );
+    
+    const typingText = typingNames.length === 1 
+      ? `${typingNames[0]} is typing...` 
+      : 'Multiple people are typing...';
+    
     return (
       <View style={styles.typingIndicator}>
         <Text style={styles.typingText}>{typingText}</Text>
@@ -264,8 +326,8 @@ export default function PropertyChatScreen() {
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.chatTitle}>Chat with Landlord</Text>
           <View style={styles.statusContainer}>
+            <Text style={styles.chatTitle}>Landlord  </Text>
             <View style={[styles.statusDot, { backgroundColor: landlordStatus === 'online' ? '#4CAF50' : '#9E9E9E' }]} />
             <Text style={styles.statusText}>{landlordStatus === 'online' ? 'Online' : 'Offline'}</Text>
           </View>
@@ -309,7 +371,10 @@ export default function PropertyChatScreen() {
               style={styles.input}
               placeholder="Type a message..."
               value={newMessage}
-              onChangeText={(text) => { setNewMessage(text); setIsTyping(text.length > 0); }}
+              onChangeText={(text) => { 
+                setNewMessage(text); 
+                setIsTyping(text.length > 0); 
+              }}
               multiline
               maxLength={500}
             />
@@ -432,7 +497,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 8,
