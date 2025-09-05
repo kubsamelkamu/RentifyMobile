@@ -175,10 +175,9 @@ To make it easier for users to install **Rentify Mobile** on their devices, a **
 2. **click download Rentify** The app  Installation  will start instantly 
 3. **Start using Rentify Mobile** Then start using Rentify.
 
----
 
 ### QR Code
 
-![Rentify Mobile QR Code](./assets/rentify-qr.png)
----
+<img src="./assets/rentify-qr.png" alt="Rentify Mobile QR Code" width="200" height="200" />
+
 
