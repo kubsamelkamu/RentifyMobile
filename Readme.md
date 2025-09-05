@@ -179,6 +179,6 @@ To make it easier for users to install **Rentify Mobile** on their devices, a **
 
 ### QR Code
 
-![Rentify Mobile QR Code](./asset/rentify-qr.png)
+![Rentify Mobile QR Code](./assets/rentify-qr.png)
 ---
 
