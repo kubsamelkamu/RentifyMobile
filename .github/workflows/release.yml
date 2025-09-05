@@ -27,12 +27,27 @@ jobs:
       - name: EAS Build Android APK
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --profile preview --non-interactive
+
+      - name: Download built artifact
+        id: download-apk
         run: |
-          eas build --platform android --profile preview --non-interactive
+          eas build:list --json --limit=1 --platform android > build.json
+          BUILD_ID=$(jq -r '.[0].id' build.json)
+          BUILD_URL=$(jq -r '.[0].artifacts.buildUrl' build.json)
+          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
+          echo "BUILD_URL=$BUILD_URL" >> $GITHUB_ENV
+          eas build:download --platform android --output=app.apk --build-id $BUILD_ID
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: app.apk
+          body: |
+            🚀 Rentify Android Release
+
+            ✅ APK is attached to this release.
+            
+            🔗 Expo Build URL: ${{ env.BUILD_URL }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
