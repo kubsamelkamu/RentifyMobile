@@ -59,3 +59,39 @@ This section lists the core technologies used to build **Rentify Mobile**, with 
 **Why this stack?**  
 It balances developer speed (Expo + TypeScript), maintainability (Redux Toolkit, modular `src` layout), and mobile-specific needs (push notifications, image hosting, realtime via Socket.IO). This stack makes Rentify Mobile fast to iterate on while staying production ready.
 
+# 📂3 — Project Structure
+
+The Rentify Mobile app follows a **modular and scalable folder structure**, keeping concerns separated and easy to maintain.
+
+├── app.json # Expo app configuration
+├── App.tsx # Root component
+├── index.ts # Entry point
+├── package.json # Dependencies and scripts
+├── tsconfig.json # TypeScript configuration
+├── eas.json # Expo Application Services config
+├── assets/ # App icons, splash screens, and static assets
+├── src/ # Main source code
+│ ├── api/ # Axios API clients (auth, booking, payment, etc.)
+│ ├── component/ # Reusable UI components (FilterPanel, cards, etc.)
+│ ├── navigation/ # Navigation setup (stacks, tabs, role-based flows)
+│ ├── screen/ # Screens grouped by feature
+│ │ ├── auth/ # Login, Register, Forgot Password
+│ │ ├── booking/ # Tenant & Landlord booking screens
+│ │ ├── chat/ # Real-time chat screens
+│ │ ├── landlord/ # Landlord-specific dashboards and tools
+│ │ ├── tenant/ # Tenant property browsing, profile, and bookings
+│ │ ├── admin/ # Admin management (users, properties, reviews)
+│ │ └── setting/ # App settings and account preferences
+│ ├── store/ # Redux Toolkit setup
+│ │ ├── slices/ # Feature-based slices (auth, bookings, properties, etc.)
+│ │ ├── rootReducer.ts # Root reducer
+│ │ ├── store.ts # Redux store config
+│ │ └── hooks.ts # Typed hooks for dispatch/selectors
+│ ├── style/ # Global and shared styles
+│ │ ├── shared/ # Theme, colors, typography
+│ │ └── global.js # Global styles
+│ └── utils/ # Helpers & utilities (socket, formatters, etc.)
+│
+├── .github/workflows/ # CI/CD workflows (EAS build, release pipeline)
+├── .vscode/ # VSCode settings
+└── .expo/ # Local Expo configuration files
