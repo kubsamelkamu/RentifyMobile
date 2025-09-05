@@ -95,3 +95,85 @@ The Rentify Mobile app follows a **modular and scalable folder structure**, keep
 ├── .github/workflows/ # CI/CD workflows (EAS build, release pipeline)
 ├── .vscode/ # VSCode settings
 └── .expo/ # Local Expo configuration files```
+
+# ⚙️ 4 — Setup & Installation
+
+Follow these steps to get **Rentify Mobile** running on your local machine or device.
+
+---
+
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/kubsamelkamu/Rentify-Mobile.git
+cd Rentify-Mobile
+
+## 2. Install dependencies
+
+Using Yarn (recommended) or npm:
+
+```bash
+    yarn install
+
+    npm install
+## 3. Configure Environment Variables
+
+Create a .env file in the project root and set the following variables:
+
+```bash
+    API_URL=http://localhost:5000    # Rentify backend (see https://github.com/kubsamelkamu/rentify_server)
+    SOCKET_URL=http://localhost:5000     # Socket.IO server for real-time 
+## 4. Start the app
+
+Run the Expo development server:
+```bash
+   npx expo start
+   yarn start
+
+# 🚀5 — Usage / Features in Action
+
+Rentify Mobile is designed for **three main user roles**: Tenant, Landlord, and Admin.  
+Each role has specific features tailored to their needs.
+
+---
+
+## 🏠 Tenant
+
+- Browse and filter properties by city, type, or price.  
+- View detailed property information with images, amenities, and landlord details.  
+- Book properties and track booking status in real time.  
+- Make payments and view payment history.  
+- Chat directly with landlords regarding property details or booking inquiries.  
+- Manage their profile and personal preferences.  
+- Receive **email and push notifications** for booking updates.
+
+---
+
+## 👨‍💼 Landlord
+
+- Add, update, or remove property listings.  
+- Approve or reject booking requests.  
+- Track payment statuses and rental history.  
+- Chat with tenants regarding bookings or property inquiries.  
+- Manage landlord profile and preferences.  
+- Receive notifications about new bookings or messages.
+
+---
+
+## 🛠️ Admin
+
+- Manage users, properties, bookings, and reviews.  
+- Approve or reject properties submitted by landlords.  
+- Track overall platform metrics (total users, properties, bookings, etc.).  
+- Access booking and payment details for monitoring and support.  
+- Receive system notifications about critical events or updates.
+
+---
+
+## 🔔 Notifications & Communication
+
+- **Email Notifications**: Booking confirmations, rejections, payment and account updates.  
+- **Push Notifications**: Real-time alerts for bookings, payments, and chat messages.
+
+---
+
