@@ -62,7 +62,7 @@ It balances developer speed (Expo + TypeScript), maintainability (Redux Toolkit,
 # 📂3 — Project Structure
 
 The Rentify Mobile app follows a **modular and scalable folder structure**, keeping concerns separated and easy to maintain.
-
+```
 ├── app.json # Expo app configuration
 ├── App.tsx # Root component
 ├── index.ts # Entry point
@@ -94,4 +94,4 @@ The Rentify Mobile app follows a **modular and scalable folder structure**, keep
 │
 ├── .github/workflows/ # CI/CD workflows (EAS build, release pipeline)
 ├── .vscode/ # VSCode settings
-└── .expo/ # Local Expo configuration files
+└── .expo/ # Local Expo configuration files```
