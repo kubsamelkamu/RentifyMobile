@@ -28,7 +28,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform android --profile preview --non-interactive --output=./app.apk
+          eas build --platform android --profile preview --non-interactive
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
