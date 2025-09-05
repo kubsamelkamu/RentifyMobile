@@ -18,7 +18,7 @@ The mobile app integrates directly with the [Rentify Backend](https://github.com
 - 🔔 **Push Notifications** – Get real-time alerts for bookings, payments, and chats 
 - 📲 **Cross-Platform** – Built once, runs on **Android & iOS**
 
-# 🧰 Step 2 — Tech Stack
+# 🧰 2 — Tech Stack
 
 This section lists the core technologies used to build **Rentify Mobile**, with short explanations why each was chosen and how it fits the app.
 
@@ -163,5 +163,22 @@ Each role has specific features tailored to their needs.
 - **Email Notifications**: Booking confirmations, rejections, payment and account updates.  
 - **Push Notifications**: Real-time alerts for bookings, payments, and chat messages.
 
+---
+
+# 📱 6 — Install via QR Code
+
+To make it easier for users to install **Rentify Mobile** on their devices, a **QR code** is provided that links directly to the app build. Users can scan the QR code with their mobile device to install the app instantly.
+
+## Steps for Users
+
+1. **Scan the QR code** below using your phone camera or a QR scanner app.  
+2. **click download Rentify** The app  Installation  will start instantly 
+3. **Start using Rentify Mobile** Then start using Rentify.
+
+---
+
+### QR Code
+
+![Rentify Mobile QR Code](./asset/rentify-qr.png)
 ---
 
