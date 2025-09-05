@@ -16,10 +16,7 @@ The mobile app integrates directly with the [Rentify Backend](https://github.com
 - 👤 **Profile Management** – Update personal details, roles, and preferences & settings.
 - 📧 **Email Notifications** – Receive real time booking confirmations, rejections, and updates 
 - 🔔 **Push Notifications** – Get real-time alerts for bookings, payments, and chats 
-- 👨‍💼 **Admin Tools** – Manage users, properties, bookings, and reviews  
 - 📲 **Cross-Platform** – Built once, runs on **Android & iOS**
-
----
 
 # 🧰 Step 2 — Tech Stack
 
@@ -28,7 +25,7 @@ This section lists the core technologies used to build **Rentify Mobile**, with 
 ## Core
 - **React Native (with Expo)** — Cross-platform UI framework that lets us build a single codebase for **Android and iOS**. Expo's managed workflow speeds up development and testing.
 - **Expo Application Services (EAS)** — Used for production builds and submitting binaries (EAS Build, EAS Submit). Easy to configure signing and CI integration.
-- **TypeScript** — Strong typing for safer code, better DX, and easier refactors.
+- **TypeScript** — Strong typing for safer code,  and easier refactors.
 
 ## State, Networking & Real-time
 - **Redux Toolkit** — Predictable global state management using slices (used for auth, bookings, properties,chat, payment).
@@ -42,7 +39,7 @@ This section lists the core technologies used to build **Rentify Mobile**, with 
 ## Media, Notifications & Emails
 - **Cloudinary** — Image storage/optimization for property photos (used by frontend/backend; mobile uploads integrate with same service).
 - **Push Notifications** — Expo Notifications (with FCM for Android / APNs for iOS) to deliver real-time alerts for bookings, payments, and chats.
-- **Email Notifications (backend)** — Emails such as booking confirmations and password resets are sent by the backend (Resend or other mail provider).
+- **Email Notifications (backend)** — Emails such as booking confirmations and password resets are sent by the backend.
 
 ## CI / CD & DevOps
 - **GitHub Actions** — Automate tests, linting, and EAS builds.
@@ -56,8 +53,6 @@ This section lists the core technologies used to build **Rentify Mobile**, with 
 
 ---
 
-**Why this stack?**  
-It balances developer speed (Expo + TypeScript), maintainability (Redux Toolkit, modular `src` layout), and mobile-specific needs (push notifications, image hosting, realtime via Socket.IO). This stack makes Rentify Mobile fast to iterate on while staying production ready.
 
 # 📂3 — Project Structure
 
@@ -94,7 +89,8 @@ The Rentify Mobile app follows a **modular and scalable folder structure**, keep
 │
 ├── .github/workflows/ # CI/CD workflows (EAS build, release pipeline)
 ├── .vscode/ # VSCode settings
-└── .expo/ # Local Expo configuration files```
+└── .expo/ # Local Expo configuration 
+```
 
 # ⚙️ 4 — Setup & Installation
 
@@ -107,6 +103,7 @@ Follow these steps to get **Rentify Mobile** running on your local machine or de
 ```bash
 git clone https://github.com/kubsamelkamu/Rentify-Mobile.git
 cd Rentify-Mobile
+```
 
 ## 2. Install dependencies
 
@@ -115,27 +112,29 @@ Using Yarn (recommended) or npm:
 ```bash
     yarn install
 
-    npm install
+    npm instal
+```
 ## 3. Configure Environment Variables
 
 Create a .env file in the project root and set the following variables:
 
 ```bash
-    API_URL=http://localhost:5000    # Rentify backend (see https://github.com/kubsamelkamu/rentify_server)
-    SOCKET_URL=http://localhost:5000     # Socket.IO server for real-time 
+    API_URL=http://localhost:5000 #Rentify backend (see https://github.com/kubsamelkamu/rentify_server)
+    SOCKET_URL=http://localhost:5000 # Socket.IO server for real-time 
+```
 ## 4. Start the app
 
 Run the Expo development server:
 ```bash
    npx expo start
-   yarn start
+   yarn Start
+```
 
 # 🚀5 — Usage / Features in Action
 
-Rentify Mobile is designed for **three main user roles**: Tenant, Landlord, and Admin.  
+Rentify Mobile is designed for **two main user roles**: Tenant, Landlord.
 Each role has specific features tailored to their needs.
 
----
 
 ## 🏠 Tenant
 
@@ -158,17 +157,6 @@ Each role has specific features tailored to their needs.
 - Manage landlord profile and preferences.  
 - Receive notifications about new bookings or messages.
 
----
-
-## 🛠️ Admin
-
-- Manage users, properties, bookings, and reviews.  
-- Approve or reject properties submitted by landlords.  
-- Track overall platform metrics (total users, properties, bookings, etc.).  
-- Access booking and payment details for monitoring and support.  
-- Receive system notifications about critical events or updates.
-
----
 
 ## 🔔 Notifications & Communication
 
