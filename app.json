@@ -7,19 +7,16 @@
     "icon": "./assets/rentify-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-
     "splash": {
       "image": "./assets/rentify-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rentify.app",
       "buildNumber": "1.0.0"
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/rentify-icon.png",
@@ -29,14 +26,15 @@
       "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
-
     "web": {
       "favicon": "./assets/rentify-icon.png"
     },
-
     "extra": {
       "API_URL": "https://hrp-server-api.onrender.com",
-      "SOCKET_URL": "https://hrp-server-api.onrender.com"
+      "SOCKET_URL": "https://hrp-server-api.onrender.com",
+      "eas": {
+        "projectId": "ad25ff6a-9e23-485c-bb11-6fa1b278801e"
+      }
     }
   }
 }
